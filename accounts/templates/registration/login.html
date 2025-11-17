@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+    <h2>Iniciar Sesión</h2>
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="hidden" name="next" value="{% url 'home' %}" /> <!--Por defecto en django, cuando un usuario logra logearse, se le va a redirigir a la url a la que intento entrar (L dirección que sale después del '?next=' en el link), pero este html va a a capturar este parámetro 'next' y va a especificar explicitamente que apunte a la url de nombre 'home'-->
+        <button type="submit">Iniciar Sesión</button>
+    </form>
+
+
+</body>
+
+</html>

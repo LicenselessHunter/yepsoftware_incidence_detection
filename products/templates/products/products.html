@@ -1,0 +1,78 @@
+{% extends 'global.html' %} 
+
+{% block title %}Productos de {{marketplace_instance}}{% endblock %}
+{% load static %} <!--Módulo para static files. The load static tag does not load static files. It’s purpose is to allow you to use the static tag in your template.-->
+{% load humanize %}
+
+{% block supbar_btns %}
+<div id = "product_btns" style="position: relative; display: flex; gap: 0.3em; right: 10%;">
+    <button id="import_product_btn">Importar</button>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <button name="export_products_btn">Exportar</button>
+    </form>
+</div>
+{% endblock %}
+
+
+{% block content %}
+<h1>Productos de {{marketplace_instance}}</h1>
+
+{% if result %}
+    {% if result.has_errors %}
+        <div style = "background-color: #F69F9F;">
+            <h2><b>Errores de importación</b></h2>
+
+            {% for line, errorsInRow in ErrorDict.items %}
+
+                <b>En línea {{ line|add:"1" }}</b> <!--Aquí se especifíca la línea de error, se le agrega 1 para que coincida con las líneas del excel.-->
+
+                {% for error in errorsInRow %} <!--Aquí se pondrán cada uno de los errores de una fila listados.-->
+                    <li style="font-size: 0.9rem; padding-bottom: 10px;">{{ error }}</li>
+                {% endfor %}
+                <br>
+                
+            {% endfor %}
+        </div>
+    {% endif %}    
+{% endif %}
+
+
+<table style ="text-align: left;">
+    <thead>
+        <tr>
+            <th>SKU</th>
+            <th>SKU Marketplace</th>
+            <th>Nombre</th>
+            <th>Precio</th>
+            <th>Precio descuento</th>
+            <th></th>
+            <th></th> 
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for product in products %}
+            <tr>
+                <td>{{ product.sku }}</td>
+                <td>{{ product.sku_marketplace }}</td>
+                <td>{{ product.product_name }}</td>
+                <td>${{ product.normal_price|intcomma }}</td>
+                {% if product.special_price != None %}
+                    <td>${{ product.special_price|intcomma }}</td>
+                {% else %}
+                    <td>Sin dato</td>
+                {% endif %}
+                <td><a href="{% url 'products:product_edit' product.id %}">Editar</a></td>
+                <td><a href="{% url 'products:product_delete' product.id %}">Eliminar</a></td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
+
+
+{% block page_scripts %}
+<script src="{% static 'products.js' %}"></script>
+{% endblock %}

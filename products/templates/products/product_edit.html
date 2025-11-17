@@ -1,0 +1,19 @@
+{% extends 'global.html' %}
+{% block title %}Editar producto{% endblock %}
+
+{% block content %}
+
+<h1>Editar producto {{ product.sku }}</h1>
+
+<h3>Producto de {{ product.marketplace_id.marketplace_name }}</h3>
+<h3>Sku Marketplace: {{ product.sku_marketplace }}</h3>
+
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <button name="confirm_product_edit">Editar</button>
+    <button name="cancel_product_edit">Cancelar</button>
+</form>
+
+{% endblock %}

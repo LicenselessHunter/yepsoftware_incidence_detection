@@ -1,0 +1,22 @@
+{% extends 'global.html' %}
+{% block title %}Eliminar producto{% endblock %}
+
+{% block content %}
+
+<h1>Eliminar producto {{ product.sku }} de {{ product.marketplace_id }}</h1>
+
+<form class="product_delete_form" method="POST">
+    <p><label>Nombre del producto:</label> {{ product.product_name }}</p>
+    <p><label>Sku Marketplace:</label> {{ product.sku_marketplace }}</p>
+    <p><label>Precio:</label> {{ product.normal_price }}</p>
+    <p><label>Precio Descuento:</label> {{ product.special_price }}</p>
+
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <button name="confirm_product_delete">Eliminar</button>
+    <button name="cancel_product_delete">Cancelar</button>
+</form>
+
+
+{% endblock %}

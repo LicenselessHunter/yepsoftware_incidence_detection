@@ -1,0 +1,89 @@
+{% load static %} <!--Módulo para static files. The load static tag does not load static files. It’s purpose is to allow you to use the static tag in your template.-->
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <title>{% block title %}{% endblock %}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <link href="{% static 'fontawesomefree/css/fontawesome.css' %}" rel="stylesheet">
+    <link href="{% static 'fontawesomefree/css/brands.css' %}" rel="stylesheet">
+    <link href="{% static 'fontawesomefree/css/solid.css' %}" rel="stylesheet">
+</head>
+
+<body>
+	<section id = "supbar">
+
+        {% block supbar_btns %}
+        {% endblock %}
+
+        <div style="position: relative; right: 3%;">
+            <form action="{% url 'accounts:logout' %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" style="background-color: transparent; color: #2980B9; font-weight: bold;">Cerrar sesión</button>
+            </form>
+        </div>
+
+    </section>
+
+    <section id = "sidebar-nav">
+        <a href="{% url 'home'%}" style="text-decoration:none;">Inicio</a>
+        
+        <div class="dropdown">
+            <a id="dropbtn-falabella" class="dropbtn">Falabella</a>
+            <div id="sidebar-dropdown-falabella" class="dropdown-content">
+                <a href="{% url 'products:products' 'falabella' %}">Productos registrados</a>
+                <a href="{% url 'incidences:falabella_product_disponibility'%}">Disponibilidad productos</a>
+                <a href="{% url 'incidences:falabella_stock_prices_report'%}">Estado de precios/stock</a>
+            </div>
+        </div>
+
+    </section>
+    
+    <section id = "messages">
+        {% if messages %}
+            <ul class="messages" style = "background-color: #70F3A9;">
+                {% for message in messages %}
+                    <li> {{ message }} </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+
+    <section id = "showcase">
+        {% block content %}
+        {% endblock %}
+
+    </section>
+
+    <!-- import-product-modal -->
+    <div id="import-product-modal" class="modal">
+
+    <div class="modal-content">
+        <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+            <span class="close">&times;</span>
+            <h2>Especificaciones de importación (No importa el orden de los campos):</h2>
+            <ul>
+                <li>sku (Cadena de texto, debe ser único)</li>
+                <li>sku_marketplace (Cadena de texto, debe ser único)</li>
+                <li>nombre (Cadena de texto)</li>
+                <li>precio (Campo numérico positivo)</li>
+                <li>precio_descuento (Campo numérico positivo o vacío)</li>
+            </ul>
+        
+            <p><input type="file" name="ImportData"></p>
+            <p><button name="import_products_btn">Confirmar importación</button></p>
+        </form>
+    </div>
+
+    </div>
+
+    <script src="{% static 'global.js' %}"></script>
+    {% block page_scripts %}{% endblock %}
+
+</body>
+
+</html>
