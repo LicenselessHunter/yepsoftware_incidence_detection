@@ -1,0 +1,86 @@
+{% extends 'global.html' %}
+{% block title %}Reporte de stock/precios {{last_incidence_report.marketplace_id}}{% endblock %}
+
+{% block supbar_btns %}
+<div id = "report_btns" style="position: relative; right: 10%;">
+    <form method="POST">
+        {% csrf_token %}
+        <button name="initiate_report">Iniciar reporte</button>
+        {% if incidence_groups %}
+            <button name="export_report">Exportar reporte</button>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}
+
+
+{% block content %}
+<h1 style="text-align: center;">Reporte de precios/stock<br>{{last_incidence_report.marketplace_id}}N°{{last_incidence_report.report_number}}</h1>
+
+<p style="text-align: center;"><em>{{last_incidence_report.report_date_time}}</em></p>
+
+<div style="display: flex; text-align: center; justify-content: space-evenly;">
+    <h2>Productos<br>revisados: <br>{{last_incidence_report.inspected_products}}</h2>
+    
+    <h2>Productos<br>sin stock: <br>{{products_without_stock.count}}</h2>
+
+    <h2>Incidencias<br>precios: <br>{{price_incidences.count}}</h2>
+    <h2>Incidencias<br>precios descuento: <br>{{special_price_incidences.count}}</h2>
+</div>
+
+
+{% if incidence_groups %}
+    <p style="text-align: center;"><em>Se encontraron las siguientes incidencias</em></p>
+    {% for incidence_group in incidence_groups %}
+        <br>
+        <div style="width: 90%; margin-left: auto; margin-right: auto; display: flex; justify-content: space-between; border: 2px solid black; padding: 10px;">
+            <div style="width: 80%;">
+                <h3>Datos del producto</h3>
+                <p>Sku: {{incidence_group.product_id.sku}}</p>
+                <p>Sku Marketplace: {{incidence_group.product_id.sku_marketplace}}</p>
+                <p>Nombre: {{incidence_group.product_id.product_name}}</p>
+                <p>Url: {{incidence_group.product_url}}</p>
+            </div>
+    
+            <div style="width: 20%;">
+                <h3>Incidencia/s</h3>
+                {% for incidence in products_without_stock %}
+                    {% if incidence.incidence_group_id.id == incidence_group.id %}
+                        <p>Producto sin stock</p>
+                        <p>Stock: {{incidence.stock}}</p>
+                        <br>
+                    {% endif %}
+                {% endfor %}
+                
+                {% for incidence in price_incidences %}
+                    {% if incidence.incidence_group_id.id == incidence_group.id %}
+                        <p>Precio diferente entre esta aplicación y marketplace</p>
+                        <ul>
+                            <li>Aplicación: {{incidence.local_price}}</li>
+                            <li>Marketplace: {{incidence.marketplace_price}}</li>
+                        </ul>
+                        <br>
+                    {% endif %}
+                {% endfor %}
+                
+                {% for incidence in special_price_incidences %}
+                    {% if incidence.incidence_group_id.id == incidence_group.id %}
+                        <p>Precio de descuento diferente entre esta aplicación y marketplace</p>
+                        <ul>
+                            <li>Aplicación: {{incidence.special_local_price}}</li>
+                            <li>Marketplace: {{incidence.special_marketplace_price}}</li>
+                        </ul>
+                        <br>
+                    {% endif %}
+                {% endfor %}
+
+            </div>
+
+        </div>
+    {% endfor %}
+
+{% else %}
+    <p style="text-align: center;"><em>No se detectaron incidencias</em></p>
+{% endif %}
+
+{% endblock %}

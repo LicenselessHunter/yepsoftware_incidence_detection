@@ -1,0 +1,56 @@
+{% extends 'global.html' %}
+{% block title %}Reporte de disponibilidad {{last_incidence_report.marketplace_id}}{% endblock %}
+
+{% block supbar_btns %}
+<div id = "report_btns" style="position: relative; right: 10%;">
+    <form method="POST">
+        {% csrf_token %}
+        <button name="initiate_report">Iniciar reporte</button>
+        {% if incidence_groups %}
+            <button name="export_report">Exportar reporte</button>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}
+
+
+{% block content %}
+<h1 style="text-align: center;">Reporte de disponibilidad<br>{{last_incidence_report.marketplace_id}} N°{{last_incidence_report.report_number}}</h1>
+
+<p style="text-align: center;"><em>{{last_incidence_report.report_date_time}}</em></p>
+
+<div style="display: flex; text-align: center; justify-content: space-evenly;">
+    <h2>Productos<br>revisados: <br>{{last_incidence_report.inspected_products}}</h2>
+    
+    <h2>Productos<br>disponibles: <br>{{available_products_count}}</h2>
+
+    <h2>Productos<br>no disponibles: <br>{{not_available_products_count}}</h2>
+</div>
+
+
+{% if not_available_incidences %}
+    <p style="text-align: center;"><em>Se encontraron las siguientes incidencias</em></p>
+    {% for incidence in not_available_incidences %}
+        <br>
+        <div style="width: 90%; margin-left: auto; margin-right: auto; display: flex; justify-content: space-between; border: 2px solid black; padding: 10px;">
+            <div>
+                <h3>Datos del producto</h3>
+                <p>Sku: {{incidence.incidence_group_id.product_id.sku}}</p>
+                <p>Sku Marketplace: {{incidence.incidence_group_id.product_id.sku_marketplace}}</p>
+                <p>Nombre: {{incidence.incidence_group_id.product_id.product_name}}</p>
+                <p>Url: {{incidence.incidence_group_id.product_url}}</p>
+            </div>
+
+            <div>
+                <h3>Incidencia/s</h3>
+                <p>Producto no disponible para la venta, <br> a pesar de tener stock</p>
+                <p>Stock: {{incidence.stock}}</p>
+            </div>
+        </div>
+    {% endfor %}
+
+{% else %}
+    <p style="text-align: center;"><em>No se detectaron incidencias</em></p>
+{% endif %}
+
+{% endblock %}
