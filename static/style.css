@@ -1,0 +1,133 @@
+button {
+    cursor: pointer;
+}
+
+/*---- supbar ----*/
+#supbar {
+    position: fixed; 
+    width: 100%; 
+    background-color: black; 
+    height: 2em; 
+    top: 0; 
+    left: 0; 
+    display: flex; 
+    align-items: center; 
+    justify-content: flex-end;
+}
+
+
+
+/*---- sidebar ----*/
+#sidebar-nav {
+    background-color: black; 
+    position: fixed; 
+    left: 0; 
+    top: 2em; 
+    height: 100%; 
+    width: 7em;
+}
+
+#sidebar-nav a {
+    color: white; 
+    font-size: 1.5em;
+}
+
+#sidebar-nav a:hover, #sidebar-nav a:focus {
+    color: #2980B9;
+}
+
+
+
+/*---- messages ----*/
+
+#messages {
+    position: fixed;
+    left: 7em;
+    top: 1em;
+    width: 100%;
+}
+
+
+/*---- showcase ----*/
+
+#showcase {
+    margin-left: 8em;
+    margin-top: 4em;
+    z-index: -1;
+}
+
+
+
+
+/*---- sidebar dropdowns----*/
+
+.dropdown {
+    position: relative; /*This is crucial for controlling the absolute position of the child menu.*/
+}
+
+.dropbtn {
+    border: none;
+    cursor: pointer;
+}
+
+.dropdown-content {
+    position: absolute;
+    left: 100%; /*left: 100%: This places the menu's left edge at the right edge of its parent container, creating the "dropright" effect.*/
+    top: 0; /* Position the menu to the top-align */
+    display: none;
+    background-color: black;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    white-space: nowrap;
+}
+
+.dropdown-content a {
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+
+
+
+.product_delete_form label{
+    font-weight: bold;
+}
+
+
+
+/*---- product modals ----*/
+
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    z-index: 1;
+}
+
+/* Modal Content */
+.modal-content {
+    width: 50%;
+    background-color: #fefefe;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 4em;
+    padding: 20px;
+    border: 1px solid #888;
+}/* The Close Button */
+
+.close {
+  color: #aaaaaa;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
