@@ -64,7 +64,8 @@ ROOT_URLCONF = 'yepsoftware_incidence_detection.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['templates'],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')], #Register all your apps, and Django will look for any files inside a folder named templates as you mentioned in os.path.join(BASE_DIR, 'templates').
+        #BASE_DIR: Represents your root project, so you don't need to hard code the absolute path
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -124,11 +125,14 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = 'static/' #URL to use when referring to static files located in STATIC_ROOT. Sets the absolute location of these collected files, typically called staticfiles. In other words, when collecstatic is run locally, it will combine all available static files, as defined by STATICFILES_DIRS, and place them within a directory called staticfiles.
 
-STATICFILES_DIRS = [
-    BASE_DIR / "assets",
+STATICFILES_DIRS = [ #is the list of folders where Django will search for additional static files aside from the static folder of each app installed.
+    BASE_DIR / "static",
 ]
+
+if DEBUG == False:
+    STATIC_ROOT = BASE_DIR / "staticfiles" #Is the folder where static files will be stored after using manage.py collectstatic. Solo se usa en producción
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
