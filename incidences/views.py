@@ -61,23 +61,24 @@ def falabella_product_disponibility(request):
             products_dict_stock = product_item['BusinessUnits']['BusinessUnit']['Stock']
             product_instance = falabella_products_queryset.get(sku=products_dict_sku)
 
+            if int(products_dict_stock) > 0:
 
-            #---- A TRAVÉS DE SCRAPING, SE VERÍFICA QUE EL BOTÓN DE COMPRA ESTÉ HABILITADO PARA EL PRODUCTO. ----#
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'}
-            # User-Agent --> El User-Agent request header es una cadena característica que le permite a los servidores y servicios de red identificar la aplicación, sistema operativo, compañía, y/o la versión del user agent que hace la petición. La identificación de agente de usuario es uno de los criterios de exclusión utilizado por el estándar de exclusión de robots para impedir el acceso a ciertas secciones de un sitio web, de lo contrario, madaría error 403.
+                #---- A TRAVÉS DE SCRAPING, SE VERÍFICA QUE EL BOTÓN DE COMPRA ESTÉ HABILITADO PARA EL PRODUCTO. ----#
+                headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'}
+                # User-Agent --> El User-Agent request header es una cadena característica que le permite a los servidores y servicios de red identificar la aplicación, sistema operativo, compañía, y/o la versión del user agent que hace la petición. La identificación de agente de usuario es uno de los criterios de exclusión utilizado por el estándar de exclusión de robots para impedir el acceso a ciertas secciones de un sitio web, de lo contrario, madaría error 403.
 
-            scraper = cloudscraper.create_scraper() # returns a CloudScraper instance
-            page = scraper.get(products_dict_url, headers=headers)
-            #Si no le agrego el user-agent, provoca que el cloudscrapper a veces falle.
+                scraper = cloudscraper.create_scraper() # returns a CloudScraper instance
+                page = scraper.get(products_dict_url, headers=headers)
+                #Si no le agrego el user-agent, provoca que el cloudscrapper a veces falle.
 
-            soup = BeautifulSoup(page.text, "html.parser")
-            
-            purchase_button = soup.find(id="add-to-cart-button") #Se busca el botón de compra.
+                soup = BeautifulSoup(page.text, "html.parser")
+                
+                purchase_button = soup.find(id="add-to-cart-button") #Se busca el botón de compra.
 
-            if purchase_button == None and int(products_dict_stock) > 0:
-                incidence_group = product_incidence_group.objects.create(incidence_report_id=new_report, product_id=product_instance, product_url=products_dict_url)
+                if purchase_button == None:
+                    incidence_group = product_incidence_group.objects.create(incidence_report_id=new_report, product_id=product_instance, product_url=products_dict_url)
 
-                unsellable_incidence.objects.create(incidence_group_id=incidence_group, stock=products_dict_stock)
+                    unsellable_incidence.objects.create(incidence_group_id=incidence_group, stock=products_dict_stock)
 
         messages.success(request, 'El informe de disponibilidad de productos ha sido generado correctamente.')
             
@@ -252,7 +253,7 @@ def falabella_api_configuration(selected_item_skus):
             'Timestamp': datetime.now().isoformat(),  # Current time in ISO format. La hora actual en formato ISO8601 relativa a UTC (p. Ej., Marca de tiempo = 2015-04-01T10: 00: 00 + 02: 00 para Berlín), de modo que las llamadas no puedan ser reproducidas por un tercero que espíe (es decir, aquellas llamadas demasiado lejos en el pasado o en el futuro producen un mensaje de error). Obligatorio.
             #'SkuSellerList': '["YEP3070","1036-3B CLASIC","YEP1022-3+","YEP1022-2","YEP3020","1036-1CLASIC","YEP1020","YEP3080","YEP1017","YEP1016"]', #Devuelve aquellos productos donde la cadena de búsqueda está contenida en el nombre y / o SKU del producto.
             'SkuSellerList': selected_item_skus, #Se convierte el QuerySet en una lista de strings.
-            'Filter': 'all'
+            'Filter': 'active'
         }
 
         # Generate the signature and add it to the parameters
