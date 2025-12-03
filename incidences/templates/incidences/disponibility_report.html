@@ -1,5 +1,6 @@
 {% extends 'global.html' %}
 {% block title %}Reporte de disponibilidad {{last_incidence_report.marketplace_id}}{% endblock %}
+{% load static %} <!--Módulo para static files. The load static tag does not load static files. It’s purpose is to allow you to use the static tag in your template.-->
 
 {% block supbar_btns %}
 <div id = "report_btns" style="position: relative; right: 10%;">
@@ -21,12 +22,16 @@
 
 <div style="display: flex; text-align: center; justify-content: space-evenly;">
     <h2>Productos<br>revisados: <br>{{last_incidence_report.inspected_products}}</h2>
-    
-    <h2>Productos<br>disponibles: <br>{{available_products_count}}</h2>
 
     <h2>Productos<br>no disponibles: <br>{{not_available_products_count}}</h2>
 </div>
 
+{% if not_accessible_products %}
+    <div style="background-color: #F69F9F; display: flex; width: 90%; margin-left: auto; margin-right: auto; padding: 10px; justify-content: space-between; align-items: center; height: 0.5em;">
+        <p>El software no pudo evaluar algunos productos</p>
+        <button id="not_accessible_products_btn">Ver productos</button>
+    </div>
+{% endif %}
 
 {% if not_available_incidences %}
     <p style="text-align: center;"><em>Se encontraron las siguientes incidencias</em></p>
@@ -38,7 +43,7 @@
                 <p>Sku: {{incidence.incidence_group_id.product_id.sku}}</p>
                 <p>Sku Marketplace: {{incidence.incidence_group_id.product_id.sku_marketplace}}</p>
                 <p>Nombre: {{incidence.incidence_group_id.product_id.product_name}}</p>
-                <p>Url: {{incidence.incidence_group_id.product_url}}</p>
+                <p><a href={{incidence.incidence_group_id.product_url}} target="_blank">Link del producto</a></p>
             </div>
 
             <div>
@@ -54,3 +59,36 @@
 {% endif %}
 
 {% endblock %}
+
+{% block modal %}
+<!-- not-accesible-products-modal -->
+<div id="not-accesible-products-modal" class="modal">
+
+    <div class="modal-content">
+        <p>El análisis de disponiblidad no pudo acceder a los siguientes productos para revisión, consultar con un desarrollador</p>
+        <table style ="text-align: center;">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Respuesta HTTP</th>
+                </tr>
+            </thead>
+            
+            <tbody>
+                {% for product in not_accessible_products %}
+                    <tr>
+                        <td>{{ product.product_id }}</td>
+                        <td>{{ product.http_status_code }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block page_scripts %}
+<script src="{% static 'disponibility_report.js' %}"></script>
+{% endblock %}
+

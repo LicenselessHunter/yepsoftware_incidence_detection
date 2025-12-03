@@ -15,13 +15,13 @@
 
 
 {% block content %}
-<h1 style="text-align: center;">Reporte de precios/stock<br>{{last_incidence_report.marketplace_id}}N°{{last_incidence_report.report_number}}</h1>
+<h1 style="text-align: center;">Reporte de precios/stock<br>{{last_incidence_report.marketplace_id}} N°{{last_incidence_report.report_number}}</h1>
 
 <p style="text-align: center;"><em>{{last_incidence_report.report_date_time}}</em></p>
 
 <div style="display: flex; text-align: center; justify-content: space-evenly;">
     <h2>Productos<br>revisados: <br>{{last_incidence_report.inspected_products}}</h2>
-    
+
     <h2>Productos<br>sin stock: <br>{{products_without_stock.count}}</h2>
 
     <h2>Incidencias<br>precios: <br>{{price_incidences.count}}</h2>
@@ -39,9 +39,9 @@
                 <p>Sku: {{incidence_group.product_id.sku}}</p>
                 <p>Sku Marketplace: {{incidence_group.product_id.sku_marketplace}}</p>
                 <p>Nombre: {{incidence_group.product_id.product_name}}</p>
-                <p>Url: {{incidence_group.product_url}}</p>
+                <p><a href={{incidence_group.product_url}} target="_blank">Link del producto</a></p>
             </div>
-    
+
             <div style="width: 20%;">
                 <h3>Incidencia/s</h3>
                 {% for incidence in products_without_stock %}
@@ -51,7 +51,7 @@
                         <br>
                     {% endif %}
                 {% endfor %}
-                
+
                 {% for incidence in price_incidences %}
                     {% if incidence.incidence_group_id.id == incidence_group.id %}
                         <p>Precio diferente entre esta aplicación y marketplace</p>
@@ -62,7 +62,7 @@
                         <br>
                     {% endif %}
                 {% endfor %}
-                
+
                 {% for incidence in special_price_incidences %}
                     {% if incidence.incidence_group_id.id == incidence_group.id %}
                         <p>Precio de descuento diferente entre esta aplicación y marketplace</p>

@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.shortcuts import render, redirect
-from .models import incidence_report, product_incidence_group, unsellable_incidence, no_stock_incidence, price_incidence, special_price_incidence
+from .models import incidence_report, product_incidence_group, unsellable_incidence, no_stock_incidence, price_incidence, special_price_incidence, not_accessible_product
 from products.models import product, marketplace
 
 import json #Python has a built-in package called json, which can be used to work with JSON data.
@@ -22,12 +22,13 @@ import cloudscraper #A simple Python module to bypass Cloudflare's anti-bot page
 
 from django.contrib.auth.decorators import login_required #Se importa el decorator.
 
+
 # Create your views here.
 @login_required
 def falabella_product_disponibility(request):
 
     last_incidence_report = incidence_report.objects.filter(marketplace_id__marketplace_name='Falabella', report_type='not sellable with stock').last()
-    
+
     if request.method == 'POST' and 'export_report' in request.POST:
         disponibility_report_resource = resources.disponibility_report_export()
         dataset = disponibility_report_resource.export(current_report=last_incidence_report)
@@ -35,7 +36,7 @@ def falabella_product_disponibility(request):
         response = HttpResponse(dataset.xlsx)
         response['Content-Disposition'] = f'attachment; filename="falabella N°{last_incidence_report.report_number} disponibilidad {last_incidence_report.report_date_time.strftime("%Y-%m-%d %H:%M:%S")}.xlsx"' #An f-string allows you to embed Python expressions directly inside string literals by enclosing them in curly braces {}. When the code is executed, Python replaces the expressions inside the braces with their resulting values. Aquí se usa para insertar variables dentro del string que define el nombre del archivo exportado.
 
-        #The strftime() method in Python is used to format datetime or time objects into a string representation based on a specified format. The name "strftime" stands for "string format time." This method is part of the datetime module and is commonly used for converting date and time information into a human-readable and customizable string. 
+        #The strftime() method in Python is used to format datetime or time objects into a string representation based on a specified format. The name "strftime" stands for "string format time." This method is part of the datetime module and is commonly used for converting date and time information into a human-readable and customizable string.
 
         return response
 
@@ -45,7 +46,29 @@ def falabella_product_disponibility(request):
         falabella_products_queryset = product.objects.filter(marketplace_id__marketplace_name='Falabella')
         selected_item_skus = str(list(falabella_products_queryset.values_list('sku', flat=True))).replace("'",'"')
 
-        products_dict = falabella_api_configuration(selected_item_skus)
+        response = falabella_api_configuration(selected_item_skus)
+
+        if response.status_code == 200:
+            json_to_python_dict = json.loads(response.text) #json.loads() is a function within Python's built-in json module used to deserialize a JSON-formatted string into a Python object. Va a convertir el objeto JSON en un diccionario de python.
+
+        else:
+            messages.error(request, f'Consulta API de falabella dio respuesta: {response.status_code}')
+            return redirect('incidences:falabella_product_disponibility')
+
+        
+        try:
+            json_to_python_dict['SuccessResponse']['Body']['Products']['Product']
+
+        except:
+            #Por si hay algún error con respecto a la configuración de la API de falabella.
+            falabella_api_error = json_to_python_dict['ErrorResponse']['Head']['ErrorMessage']
+            messages.error(request, f'"{falabella_api_error}", consulte a un desarrollador')
+            return redirect('incidences:falabella_product_disponibility')
+
+        else:
+            products_dict = json_to_python_dict['SuccessResponse']['Body']['Products']['Product']
+
+
         marketplace_instance = marketplace.objects.get(marketplace_name='Falabella')
 
         if last_incidence_report:
@@ -53,6 +76,21 @@ def falabella_product_disponibility(request):
 
         else:
             new_report = incidence_report.objects.create(marketplace_id=marketplace_instance, report_number=1, report_type='not sellable with stock', inspected_products=len(products_dict), created_by=request.user)
+
+
+
+        #---- CREACIÓN DE INSTANCIA DE CLOUDSCRAPER ----
+        scraper = cloudscraper.create_scraper(
+            delay=10,
+            browser={
+                'custom': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+            }
+        ) # returns a CloudScraper instance
+        #Los desafios de cloudflare usualmente requeiren de 5 segundos para resolver, cloudscraper ya tiene un delay por solicitud por defecto para esto, pero en ocasiones esto no puede ser sufieciente. Como en mi caso que sbreescribo esto al poner un delay de 10 segundos.
+        # User-Agent --> El User-Agent request header es una cadena característica que le permite a los servidores y servicios de red identificar la aplicación, sistema operativo, compañía, y/o la versión del user agent que hace la petición. La identificación de agente de usuario es uno de los criterios de exclusión utilizado por el estándar de exclusión de robots para impedir el acceso a ciertas secciones de un sitio web, de lo contrario, madaría error 403.
+        #Con el parámetro 'custom', Cloudscraper also allows you to set your own custom user-agents. This gives you greater control over how your scraper presents itself to the target website. Cloudscraper will attempt to match this user-agent string with known device and browser combinations. If a match is found, it will configure the scraper's headers and ciphers accordingly. If not, it will use a generic set of headers and ciphers.
+        #It is recommended to reuse a single cloudscraper instance for multiple requests rather than creating a new one for every single request.
+
 
         for product_item in products_dict:
 
@@ -64,47 +102,51 @@ def falabella_product_disponibility(request):
             if int(products_dict_stock) > 0:
 
                 #---- A TRAVÉS DE SCRAPING, SE VERÍFICA QUE EL BOTÓN DE COMPRA ESTÉ HABILITADO PARA EL PRODUCTO. ----#
-                headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'}
-                # User-Agent --> El User-Agent request header es una cadena característica que le permite a los servidores y servicios de red identificar la aplicación, sistema operativo, compañía, y/o la versión del user agent que hace la petición. La identificación de agente de usuario es uno de los criterios de exclusión utilizado por el estándar de exclusión de robots para impedir el acceso a ciertas secciones de un sitio web, de lo contrario, madaría error 403.
-
-                scraper = cloudscraper.create_scraper() # returns a CloudScraper instance
-                page = scraper.get(products_dict_url, headers=headers)
-                #Si no le agrego el user-agent, provoca que el cloudscrapper a veces falle.
-
-                soup = BeautifulSoup(page.text, "html.parser")
+                page = scraper.get(products_dict_url)
                 
+                if page.status_code != 200: #Por si cloudscraper no logra acceder al producto del recorrido actual
+                    not_accessible_product.objects.create(product_id=product_instance, incidence_report_id=new_report, http_status_code=page.status_code)                   
+                    continue
+
+                soup = BeautifulSoup(page.content, "html.parser")
+
                 purchase_button = soup.find(id="add-to-cart-button") #Se busca el botón de compra.
+
 
                 if purchase_button == None:
                     incidence_group = product_incidence_group.objects.create(incidence_report_id=new_report, product_id=product_instance, product_url=products_dict_url)
 
                     unsellable_incidence.objects.create(incidence_group_id=incidence_group, stock=products_dict_stock)
 
+
+        scraper.close()
         messages.success(request, 'El informe de disponibilidad de productos ha sido generado correctamente.')
-            
+
         return redirect('incidences:falabella_product_disponibility')
 
 
     try:
         not_available_products_queryset = product_incidence_group.objects.filter(incidence_report_id=last_incidence_report.id)
         not_available_products_count = not_available_products_queryset.count()
-        available_products_count = last_incidence_report.inspected_products - not_available_products_count
 
         not_available_incidences = unsellable_incidence.objects.filter(incidence_group_id__in=not_available_products_queryset)
         incidence_groups = product_incidence_group.objects.filter(incidence_report_id=last_incidence_report.id)
+        not_accessible_products_queryset = not_accessible_product.objects.filter(incidence_report_id=last_incidence_report.id)
 
         context = {
             'last_incidence_report': last_incidence_report,
             'not_available_products_count': not_available_products_count,
-            'available_products_count': available_products_count,
             'not_available_incidences': not_available_incidences,
+            'not_accessible_products': not_accessible_products_queryset,
             'incidence_groups': incidence_groups,
         }
 
         return render(request, 'incidences/disponibility_report.html', context)
-    
+
     except:
         return render(request, 'incidences/disponibility_report.html')
+
+
 
 
 @login_required
@@ -114,7 +156,7 @@ def falabella_stock_prices_report(request):
     if request.method == 'POST' and 'export_report' in request.POST:
         excel_sheets_dict = {}
 
-        
+
         if (no_stock_incidence.objects.filter(incidence_group_id__incidence_report_id=last_incidence_report)).exists():
             stock_prices_resource = resources.stock_prices_report_export()
             no_stock_data = stock_prices_resource.export(current_report=last_incidence_report) #Prepare tablib.Dataset for no_stock_incidence
@@ -122,7 +164,7 @@ def falabella_stock_prices_report(request):
             excel_sheets_dict['no_stock_sheet'] = [df_no_stock, 'Sin Stock']
 
 
-        
+
         if (price_incidence.objects.filter(incidence_group_id__incidence_report_id=last_incidence_report)).exists():
             normal_prices_resource = resources.normal_prices_report_export()
             price_data = normal_prices_resource.export(current_report=last_incidence_report) #Prepare tablib.Dataset for price_incidence
@@ -130,7 +172,7 @@ def falabella_stock_prices_report(request):
             excel_sheets_dict['prices_sheet'] = [df_prices, 'Precios Normales']
 
 
-        
+
         if (special_price_incidence.objects.filter(incidence_group_id__incidence_report_id=last_incidence_report)).exists():
             special_prices_resource = resources.special_prices_report_export()
             special_price_data = special_prices_resource.export(current_report=last_incidence_report) #Prepare tablib.Dataset for special_price_incidence
@@ -138,17 +180,17 @@ def falabella_stock_prices_report(request):
             excel_sheets_dict['special_prices_sheet'] = [df_special_prices, 'Precios Descuento']
 
 
-        output = BytesIO() #Es una clase en Python del módulo io que crea un buffer en memoria para datos binarios, comportándose como un archivo virtual para operaciones de lectura y escritura de bytes. Se utiliza para manipular datos binarios como imágenes o archivos, en lugar de texto, y es útil cuando se necesita procesar datos en memoria sin necesidad de un archivo físico. 
-        
+        output = BytesIO() #Es una clase en Python del módulo io que crea un buffer en memoria para datos binarios, comportándose como un archivo virtual para operaciones de lectura y escritura de bytes. Se utiliza para manipular datos binarios como imágenes o archivos, en lugar de texto, y es útil cuando se necesita procesar datos en memoria sin necesidad de un archivo físico.
+
         # Usar un ExcelWriter de pandas para escribir en múltiples hojas
-        # Class for writing DataFrame objects into excel sheets. En el primer argumento, se especifica la ruta del archivo xls o xlsx en donde se va a escribir, en este caso, el archivo que está en el buffer de memoria creado con "BytesIO". 
+        # Class for writing DataFrame objects into excel sheets. En el primer argumento, se especifica la ruta del archivo xls o xlsx en donde se va a escribir, en este caso, el archivo que está en el buffer de memoria creado con "BytesIO".
         with pd.ExcelWriter(output) as writer:
             for key in excel_sheets_dict:
                 excel_sheets_dict[key][0].to_excel(writer, sheet_name=excel_sheets_dict[key][1], index=False)
 
-        
+
         # Preparar la respuesta HTTP para la descarga
-        output.seek(0) # Rebobinar el buffer al inicio. Se usa para mover el cursor de un archivo a la posición inicial (byte 0). Es útil para volver a leer o escribir desde el principio de un archivo sin tener que cerrarlo y volver a abrirlo. Si tienes un archivo abierto y necesitas leerlo de nuevo desde el principio, puedes usar archivo.seek(0).  
+        output.seek(0) # Rebobinar el buffer al inicio. Se usa para mover el cursor de un archivo a la posición inicial (byte 0). Es útil para volver a leer o escribir desde el principio de un archivo sin tener que cerrarlo y volver a abrirlo. Si tienes un archivo abierto y necesitas leerlo de nuevo desde el principio, puedes usar archivo.seek(0).
         response = HttpResponse(
             output
         )
@@ -161,7 +203,29 @@ def falabella_stock_prices_report(request):
         falabella_products_queryset = product.objects.filter(marketplace_id__marketplace_name='Falabella')
         selected_item_skus = str(list(falabella_products_queryset.values_list('sku', flat=True))).replace("'",'"')
 
-        products_dict = falabella_api_configuration(selected_item_skus)
+        response = falabella_api_configuration(selected_item_skus)
+
+        if response.status_code == 200:
+            json_to_python_dict = json.loads(response.text) #json.loads() is a function within Python's built-in json module used to deserialize a JSON-formatted string into a Python object. Va a convertir el objeto JSON en un diccionario de python.
+
+        else:
+            messages.error(request, f'Consulta API de falabella dio respuesta: {response.status_code}')
+            return redirect('incidences:falabella_stock_prices_report')
+
+        
+        try:
+            json_to_python_dict['SuccessResponse']['Body']['Products']['Product']
+
+        except:
+            #Por si hay algún error con respecto a la configuración de la API de falabella.
+            falabella_api_error = json_to_python_dict['ErrorResponse']['Head']['ErrorMessage']
+            messages.error(request, f'"{falabella_api_error}", consulte a un desarrollador')
+            return redirect('incidences:falabella_stock_prices_report')
+
+        else:
+            products_dict = json_to_python_dict['SuccessResponse']['Body']['Products']['Product']
+
+
         marketplace_instance = marketplace.objects.get(marketplace_name='Falabella')
 
         if last_incidence_report:
@@ -216,7 +280,7 @@ def falabella_stock_prices_report(request):
                     special_price_incidence.objects.create(incidence_group_id=incidence_group, special_local_price=product_instance.special_price, special_marketplace_price=products_dict_special_price)
 
         messages.success(request, 'El informe de stock y precios ha sido generado correctamente.')
-            
+
         return redirect('incidences:falabella_stock_prices_report')
 
 
@@ -235,7 +299,7 @@ def falabella_stock_prices_report(request):
         }
 
         return render(request, 'incidences/stock_prices_report.html', context)
-    
+
     except:
         return render(request, 'incidences/stock_prices_report.html')
 
@@ -268,10 +332,7 @@ def falabella_api_configuration(selected_item_skus):
         # Make the GET request to the APIs
         response = requests.get(url, headers=headers, params=parameters)
 
-        json_to_python_dict = json.loads(response.text) #json.loads() is a function within Python's built-in json module used to deserialize a JSON-formatted string into a Python object. Va a convertir el objeto JSON en un diccionario de python.
-        products_dict = json_to_python_dict['SuccessResponse']['Body']['Products']['Product']
-
-        return products_dict
+        return response
 
 
 def generate_signature(api_key, parameters):
@@ -286,7 +347,7 @@ def generate_signature(api_key, parameters):
         str: The generated signature in hexadecimal format
 
 
-        
+
     La cadena para firmar es ...
 
     el resultado concatenado de todos los parámetros de la solicitud,
