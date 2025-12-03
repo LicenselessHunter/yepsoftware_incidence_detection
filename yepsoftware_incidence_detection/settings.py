@@ -131,8 +131,7 @@ STATICFILES_DIRS = [ #is the list of folders where Django will search for additi
     BASE_DIR / "static",
 ]
 
-if DEBUG == False:
-    STATIC_ROOT = BASE_DIR / "staticfiles" #Is the folder where static files will be stored after using manage.py collectstatic. Solo se usa en producción
+STATIC_ROOT = BASE_DIR / "staticfiles" #Is the folder where static files will be stored after using manage.py collectstatic. Solo se usa en producción
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

@@ -7,7 +7,7 @@ class products_export(resources.ModelResource):
 	def filter_export(self, queryset, *args, **kwargs):
 		# Example: Filter books published after a certain date
 		# You might pass the date as a kwarg from your admin or view
-  
+
 		queryset = queryset.filter(marketplace_id__marketplace_name=kwargs['current_marketplace'])
 		return queryset
 
@@ -33,7 +33,7 @@ class products_import(resources.ModelResource):
 		row['created_by'] = kwargs['current_user'].id
 
 		errors = [] #Lista que contendra los errores de cada fila
-		
+
 
 		#LEVANTAMIENTO DE ERROR CAMPO "SKU"
 		if isinstance(row['sku'], str):
@@ -59,7 +59,6 @@ class products_import(resources.ModelResource):
 			errors.append(str(Exception("sku_marketplace debe ser un campo de texto")))
 
 
-
 		#LEVANTAMIENTO DE ERROR CAMPO "nombre"
 		if isinstance(row['nombre'], str):
 			if len(row['nombre']) == 0 or len(row['nombre']) > 100:
@@ -73,7 +72,7 @@ class products_import(resources.ModelResource):
 		#LEVANTAMIENTO DE ERROR CAMPO "precio"
 		try:
 			price_row = float(row['precio']) #Un string "3" se convertirá en valor 3.0
-			if price_row <= 0 or price_row.is_integer() == False: 
+			if price_row <= 0 or price_row.is_integer() == False:
 				#.is_integer()
 					#It returns True if the float value is numerically equivalent to an integer (e.g., 5.0, 10.0).
 					#It returns False if the float value has a non-zero fractional part (e.g., 5.5, 10.1).
@@ -84,12 +83,15 @@ class products_import(resources.ModelResource):
 		except: #En caso de que row['precio'] sea un string que no se pueda convertir en float o un campo vacío.
 			errors.append(str(Exception("precio debe ser un número entero positivo")))
 
+		else:
+		    row['precio'] = int(float(row['precio']))
 
 
-        #LEVANTAMIENTO DE ERROR CAMPO "precio_descuento" 
+
+        #LEVANTAMIENTO DE ERROR CAMPO "precio_descuento"
 		try:
 			special_price_row = float(row['precio_descuento']) #Un string "3" se convertirá en valor 3.0
-			if special_price_row < 0 or special_price_row.is_integer() == False: 
+			if special_price_row < 0 or special_price_row.is_integer() == False:
 				#.is_integer()
 					#It returns True if the float value is numerically equivalent to an integer (e.g., 5.0, 10.0).
 					#It returns False if the float value has a non-zero fractional part (e.g., 5.5, 10.1).
@@ -98,8 +100,15 @@ class products_import(resources.ModelResource):
 			#int(row['precio'])
 
 		except: #En caso de que row['precio_descuento'] sea un string que no se pueda convertir en float o un campo vacío.
-			if row['precio_descuento'] is not None:
-				errors.append(str(Exception("precio de descuento debe ser un número igual o mayor a 0 o un campo vacío")))   
+			if row['precio_descuento'] is not None and row['precio_descuento'] != '':
+				errors.append(str(Exception("precio de descuento debe ser un número igual o mayor a 0 o un campo vacío")))
+
+			else:
+			    row['precio_descuento'] = None
+
+		else:
+		    row['precio_descuento'] = int(float(row['precio_descuento']))
+
 
 
 
@@ -114,7 +123,7 @@ class products_import(resources.ModelResource):
 	#Aquí estamos declarando nombres personalizados para los headers del archivo excel. Por ejemplo, en la variable 'product_name_header', usamos el parámetro 'attribute' para referenciar el campo del model y el parámetro 'column_name' lo usamos para definir el nombre del header personalizado que aparecera en el archivo excel.
 	product_name_header = fields.Field(attribute='product_name', column_name='nombre')
 	normal_price_header = fields.Field(attribute='normal_price', column_name='precio')
-	special_price_header = fields.Field(attribute='special_price', column_name='precio_descuento') 
+	special_price_header = fields.Field(attribute='special_price', column_name='precio_descuento')
 
 
 	class Meta:
