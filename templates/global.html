@@ -40,6 +40,13 @@
             </div>
         </div>
 
+        <div class="dropdown">
+            <a id="dropbtn-lider" class="dropbtn">Lider</a>
+            <div id="sidebar-dropdown-lider" class="dropdown-content">
+                <a href="{% url 'products:products' 'lider' %}">Productos registrados</a>
+            </div>
+        </div>
+
     </section>
     
     {% if messages %}
