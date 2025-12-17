@@ -1,8 +1,8 @@
 // Get the modal
-const modal = document.getElementById("not-accesible-products-modal");
+const modal = document.getElementById("not-scrapeable-products-modal");
 
 // Get the button that opens the modal
-const btn = document.getElementById("not_accessible_products_btn");
+const btn = document.getElementById("not_scrapeable_products_btn");
 
 // When the user clicks the button, open the modal 
 btn.onclick = function() {

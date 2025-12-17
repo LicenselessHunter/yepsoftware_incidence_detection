@@ -1,5 +1,5 @@
 {% extends 'global.html' %}
-{% block title %}Reporte de disponibilidad {{last_incidence_report.marketplace_id}}{% endblock %}
+{% block title %}Reporte de disponibilidad {{marketplace_instance}}{% endblock %}
 {% load static %} <!--Módulo para static files. The load static tag does not load static files. It’s purpose is to allow you to use the static tag in your template.-->
 
 {% block supbar_btns %}
@@ -16,7 +16,7 @@
 
 
 {% block content %}
-<h1 style="text-align: center;">Reporte de disponibilidad<br>{{last_incidence_report.marketplace_id}} N°{{last_incidence_report.report_number}}</h1>
+<h1 style="text-align: center;">Reporte de disponibilidad<br>{{marketplace_instance}} N°{{last_incidence_report.report_number}}</h1>
 
 <p style="text-align: center;"><em>{{last_incidence_report.report_date_time}}</em></p>
 
@@ -26,10 +26,10 @@
     <h2>Productos<br>no disponibles: <br>{{not_available_products_count}}</h2>
 </div>
 
-{% if not_accessible_products %}
+{% if not_scrapeable_products %}
     <div style="background-color: #F69F9F; display: flex; width: 90%; margin-left: auto; margin-right: auto; padding: 10px; justify-content: space-between; align-items: center; height: 0.5em;">
         <p>El software no pudo evaluar algunos productos</p>
-        <button id="not_accessible_products_btn">Ver productos</button>
+        <button id="not_scrapeable_products_btn">Ver productos</button>
     </div>
 {% endif %}
 
@@ -61,8 +61,8 @@
 {% endblock %}
 
 {% block modal %}
-<!-- not-accesible-products-modal -->
-<div id="not-accesible-products-modal" class="modal">
+<!-- not-scrapeable-products-modal -->
+<div id="not-scrapeable-products-modal" class="modal">
 
     <div class="modal-content">
         <p>El análisis de disponiblidad no pudo acceder a los siguientes productos para revisión, consultar con un desarrollador</p>
@@ -75,7 +75,7 @@
             </thead>
             
             <tbody>
-                {% for product in not_accessible_products %}
+                {% for product in not_scrapeable_products %}
                     <tr>
                         <td>{{ product.product_id }}</td>
                         <td>{{ product.http_status_code }}</td>
@@ -89,6 +89,6 @@
 
 
 {% block page_scripts %}
-<script src="{% static 'disponibility_report.js' %}"></script>
+<script src="{% static 'incidence_report.js' %}"></script>
 {% endblock %}
 

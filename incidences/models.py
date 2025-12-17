@@ -42,7 +42,7 @@ class unsellable_incidence(models.Model):
     incidence_group_id = models.ForeignKey(product_incidence_group, on_delete=models.CASCADE)
     stock = models.IntegerField()
 
-class not_accessible_product(models.Model):
+class not_scrapeable_product(models.Model):
     product_id = models.ForeignKey(product, on_delete=models.CASCADE)
     incidence_report_id = models.ForeignKey(incidence_report, on_delete=models.CASCADE)
     http_status_code = models.PositiveIntegerField()

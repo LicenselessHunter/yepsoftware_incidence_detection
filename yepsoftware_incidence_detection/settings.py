@@ -144,3 +144,7 @@ FAL_URL = os.getenv('FAL_URL')
 FAL_API_KEY = os.getenv('FAL_API_KEY')
 FAL_USER_ID = os.getenv('FAL_USER_ID')
 FAL_USER_AGENT = os.getenv('FAL_USER_AGENT')
+
+#---- Walmart API data -----
+WALMART_CLIENT_ID = os.getenv('WALMART_CLIENT_ID')
+WALMART_CLIENT_SECRET = os.getenv('WALMART_CLIENT_SECRET')

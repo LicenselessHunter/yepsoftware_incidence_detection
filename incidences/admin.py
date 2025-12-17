@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import incidence_report, product_incidence_group, no_stock_incidence, price_incidence, special_price_incidence, unsellable_incidence, not_accessible_product
+from .models import incidence_report, product_incidence_group, no_stock_incidence, price_incidence, special_price_incidence, unsellable_incidence, not_scrapeable_product
 
 # Register your models here.
 admin.site.register(incidence_report)
@@ -8,4 +8,4 @@ admin.site.register(no_stock_incidence)
 admin.site.register(price_incidence)
 admin.site.register(special_price_incidence)
 admin.site.register(unsellable_incidence)
-admin.site.register(not_accessible_product)
+admin.site.register(not_scrapeable_product)

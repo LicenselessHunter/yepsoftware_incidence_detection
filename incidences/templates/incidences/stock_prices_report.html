@@ -1,5 +1,6 @@
 {% extends 'global.html' %}
-{% block title %}Reporte de stock/precios {{last_incidence_report.marketplace_id}}{% endblock %}
+{% block title %}Reporte de stock/precios {{marketplace_instance}}{% endblock %}
+{% load static %} <!--Módulo para static files. The load static tag does not load static files. It’s purpose is to allow you to use the static tag in your template.-->
 
 {% block supbar_btns %}
 <div id = "report_btns" style="position: relative; right: 10%;">
@@ -15,7 +16,7 @@
 
 
 {% block content %}
-<h1 style="text-align: center;">Reporte de precios/stock<br>{{last_incidence_report.marketplace_id}} N°{{last_incidence_report.report_number}}</h1>
+<h1 style="text-align: center;">Reporte de precios/stock<br>{{marketplace_instance}} N°{{last_incidence_report.report_number}}</h1>
 
 <p style="text-align: center;"><em>{{last_incidence_report.report_date_time}}</em></p>
 
@@ -27,6 +28,13 @@
     <h2>Incidencias<br>precios: <br>{{price_incidences.count}}</h2>
     <h2>Incidencias<br>precios descuento: <br>{{special_price_incidences.count}}</h2>
 </div>
+
+{% if not_scrapeable_products %}
+    <div style="background-color: #F69F9F; display: flex; width: 90%; margin-left: auto; margin-right: auto; padding: 10px; justify-content: space-between; align-items: center; height: 0.5em;">
+        <p>El software no pudo evaluar algunos productos</p>
+        <button id="not_scrapeable_products_btn">Ver productos</button>
+    </div>
+{% endif %}
 
 
 {% if incidence_groups %}
@@ -83,4 +91,35 @@
     <p style="text-align: center;"><em>No se detectaron incidencias</em></p>
 {% endif %}
 
+{% endblock %}
+
+{% block modal %}
+<!-- not-scrapeable-products-modal -->
+<div id="not-scrapeable-products-modal" class="modal">
+
+    <div class="modal-content">
+        <p>El análisis de disponiblidad no pudo acceder a los siguientes productos para revisión, consultar con un desarrollador</p>
+        <table style ="text-align: center;">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Respuesta HTTP</th>
+                </tr>
+            </thead>
+            
+            <tbody>
+                {% for product in not_scrapeable_products %}
+                    <tr>
+                        <td>{{ product.product_id }}</td>
+                        <td>{{ product.http_status_code }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{% static 'incidence_report.js' %}"></script>
 {% endblock %}
