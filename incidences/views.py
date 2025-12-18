@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.shortcuts import render, redirect
-from .models import incidence_report, product_incidence_group, unsellable_incidence, no_stock_incidence, price_incidence, special_price_incidence, not_scrapeable_product
+from .models import incidence_report, product_incidence_group, unsellable_incidence, no_stock_incidence, price_incidence, special_price_incidence, not_scrapeable_product, existing_product_not_local
 from products.models import product, marketplace
 
 import json #Python has a built-in package called json, which can be used to work with JSON data.
@@ -373,9 +373,6 @@ def lider_stock_prices_report(request):
             product_name = product_item['productName']
             product_shelf = ast.literal_eval(product_item['shelf'])
 
-            if product_sku not in list(lider_products_queryset.values_list('sku', flat=True)):
-                continue
-
             try:
                 product_category = product_shelf[2]
             except:
@@ -383,6 +380,12 @@ def lider_stock_prices_report(request):
 
             #La api no entrega la url de un producto, pero si entrega datos para generar esta url.
             product_url = unidecode.unidecode(f"https://www.lider.cl/ip/{product_category.replace(' ', '-').lower()}/{product_name.replace(' ', '-').lower()}/{'0'+ product_item['gtin'][0:len(product_item['gtin'])-1]}")
+
+
+            #---- VERIFICACIÓN SI EL PRODUCTO EXISTE EN LA BASE DE DATOS LOCAL ----
+            if product_sku not in list(lider_products_queryset.values_list('sku', flat=True)):
+                existing_product_not_local.objects.create(incidence_report_id=new_report, sku=product_sku, sku_marketplace=product_wpid, product_name=product_name, product_url=product_url)
+                continue
 
 
 
@@ -456,6 +459,7 @@ def lider_stock_prices_report(request):
         special_price_incidences = special_price_incidence.objects.filter(incidence_group_id__incidence_report_id=last_incidence_report)
         incidence_groups = product_incidence_group.objects.filter(incidence_report_id=last_incidence_report.id)
         not_scrapeable_products_queryset = not_scrapeable_product.objects.filter(incidence_report_id=last_incidence_report.id)
+        not_existing_products_in_local = existing_product_not_local.objects.filter(incidence_report_id=last_incidence_report.id)
 
         context = {
             'marketplace_instance': marketplace_instance,
@@ -465,6 +469,7 @@ def lider_stock_prices_report(request):
             'special_price_incidences': special_price_incidences,
             'incidence_groups': incidence_groups,
             'not_scrapeable_products': not_scrapeable_products_queryset,
+            'not_existing_products_in_local': not_existing_products_in_local,
         }
 
         return render(request, 'incidences/stock_prices_report.html', context)

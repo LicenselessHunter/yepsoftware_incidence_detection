@@ -165,3 +165,10 @@ button {
     width: 20%;
     background-color: #F69F9F;
 }
+
+
+/*---- not-existing-products-in-local-modal css ----*/
+#not-existing-products-in-local-modal .modal-content {
+    width: 50%;
+    background-color: #ffffff;
+}

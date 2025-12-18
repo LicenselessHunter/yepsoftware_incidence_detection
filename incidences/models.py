@@ -46,3 +46,15 @@ class not_scrapeable_product(models.Model):
     product_id = models.ForeignKey(product, on_delete=models.CASCADE)
     incidence_report_id = models.ForeignKey(incidence_report, on_delete=models.CASCADE)
     http_status_code = models.PositiveIntegerField()
+
+class existing_product_not_local(models.Model):
+    incidence_report_id = models.ForeignKey(incidence_report, on_delete=models.CASCADE)
+    sku = models.CharField(
+        max_length=30, 
+        blank=False)
+
+    sku_marketplace = models.CharField(
+        max_length=30, 
+        blank=False)
+    product_name = models.CharField(max_length=100)
+    product_url = models.URLField(max_length=200, blank=True, null=True)
