@@ -50,9 +50,9 @@ def falabella_product_disponibility(request):
     if request.method == 'POST' and 'initiate_report' in request.POST:
 
         falabella_products_queryset = product.objects.filter(marketplace_id__marketplace_name='Falabella')
-        selected_item_skus = str(list(falabella_products_queryset.values_list('sku', flat=True))).replace("'",'"')
+        #selected_item_skus = str(list(falabella_products_queryset.values_list('sku', flat=True))).replace("'",'"')
 
-        response = falabella_api_configuration(selected_item_skus)
+        response = falabella_api_configuration()
 
         if response.status_code == 200:
             json_to_python_dict = json.loads(response.text) #json.loads() is a function within Python's built-in json module used to deserialize a JSON-formatted string into a Python object. Va a convertir el objeto JSON en un diccionario de python.
@@ -91,6 +91,11 @@ def falabella_product_disponibility(request):
 
 
         for product_item in products_dict:
+            #---- VERIFICACIÓN SI EL PRODUCTO EXISTE EN LA BASE DE DATOS LOCAL ----
+            if product_item['SellerSku'] not in list(falabella_products_queryset.values_list('sku', flat=True)):
+                existing_product_not_local.objects.create(incidence_report_id=new_report, sku=product_item['SellerSku'], sku_marketplace=product_item['ShopSku'], product_name=product_item['Name'], product_url=product_item['Url'])
+                continue
+            #---- FIN VERIFICACIÓN SI EL PRODUCTO EXISTE EN LA BASE DE DATOS LOCAL ----
 
             products_dict_url = product_item['Url']
             products_dict_sku = product_item['SellerSku']
@@ -130,6 +135,7 @@ def falabella_product_disponibility(request):
         not_available_incidences = unsellable_incidence.objects.filter(incidence_group_id__in=not_available_products_queryset)
         incidence_groups = product_incidence_group.objects.filter(incidence_report_id=last_incidence_report.id)
         not_scrapeable_products_queryset = not_scrapeable_product.objects.filter(incidence_report_id=last_incidence_report.id)
+        not_existing_products_in_local = existing_product_not_local.objects.filter(incidence_report_id=last_incidence_report.id)
 
         context = {
             'marketplace_instance': marketplace_instance,
@@ -138,6 +144,7 @@ def falabella_product_disponibility(request):
             'not_available_incidences': not_available_incidences,
             'not_scrapeable_products': not_scrapeable_products_queryset,
             'incidence_groups': incidence_groups,
+            'not_existing_products_in_local': not_existing_products_in_local,
         }
 
         return render(request, 'incidences/disponibility_report.html', context)
@@ -158,9 +165,9 @@ def falabella_stock_prices_report(request):
     if request.method == 'POST' and 'initiate_report' in request.POST:
 
         falabella_products_queryset = product.objects.filter(marketplace_id__marketplace_name='Falabella')
-        selected_item_skus = str(list(falabella_products_queryset.values_list('sku', flat=True))).replace("'",'"')
+        #selected_item_skus = str(list(falabella_products_queryset.values_list('sku', flat=True))).replace("'",'"')
 
-        response = falabella_api_configuration(selected_item_skus)
+        response = falabella_api_configuration()
 
         if response.status_code == 200:
             json_to_python_dict = json.loads(response.text) #json.loads() is a function within Python's built-in json module used to deserialize a JSON-formatted string into a Python object. Va a convertir el objeto JSON en un diccionario de python.
@@ -186,6 +193,13 @@ def falabella_stock_prices_report(request):
         new_report = generate_incidence_report(marketplace_instance, last_incidence_report, 'incorrect prices / no stock', len(products_dict), request)
 
         for product_item in products_dict:
+
+            #---- VERIFICACIÓN SI EL PRODUCTO EXISTE EN LA BASE DE DATOS LOCAL ----
+            if product_item['SellerSku'] not in list(falabella_products_queryset.values_list('sku', flat=True)):
+                existing_product_not_local.objects.create(incidence_report_id=new_report, sku=product_item['SellerSku'], sku_marketplace=product_item['ShopSku'], product_name=product_item['Name'], product_url=product_item['Url'])
+                continue
+            #---- FIN VERIFICACIÓN SI EL PRODUCTO EXISTE EN LA BASE DE DATOS LOCAL ----
+
             products_dict_url = product_item['Url']
             products_dict_sku = product_item['SellerSku']
             products_dict_price = int(float(product_item['BusinessUnits']['BusinessUnit']['Price']))
@@ -222,6 +236,7 @@ def falabella_stock_prices_report(request):
         price_incidences = price_incidence.objects.filter(incidence_group_id__incidence_report_id=last_incidence_report)
         special_price_incidences = special_price_incidence.objects.filter(incidence_group_id__incidence_report_id=last_incidence_report)
         incidence_groups = product_incidence_group.objects.filter(incidence_report_id=last_incidence_report.id)
+        not_existing_products_in_local = existing_product_not_local.objects.filter(incidence_report_id=last_incidence_report.id)
 
         context = {
             'marketplace_instance': marketplace_instance,
@@ -230,6 +245,7 @@ def falabella_stock_prices_report(request):
             'price_incidences': price_incidences,
             'special_price_incidences': special_price_incidences,
             'incidence_groups': incidence_groups,
+            'not_existing_products_in_local': not_existing_products_in_local,
         }
 
         return render(request, 'incidences/stock_prices_report.html', context)
@@ -238,7 +254,7 @@ def falabella_stock_prices_report(request):
         return render(request, 'incidences/stock_prices_report.html', {'marketplace_instance': marketplace_instance})
 
 
-def falabella_api_configuration(selected_item_skus):
+def falabella_api_configuration():
         url = settings.FAL_URL
         api_key = settings.FAL_API_KEY
 
@@ -250,7 +266,7 @@ def falabella_api_configuration(selected_item_skus):
             'Format': 'JSON',
             'Timestamp': datetime.now().isoformat(),  # Current time in ISO format. La hora actual en formato ISO8601 relativa a UTC (p. Ej., Marca de tiempo = 2015-04-01T10: 00: 00 + 02: 00 para Berlín), de modo que las llamadas no puedan ser reproducidas por un tercero que espíe (es decir, aquellas llamadas demasiado lejos en el pasado o en el futuro producen un mensaje de error). Obligatorio.
             #'SkuSellerList': '["YEP3070","1036-3B CLASIC","YEP1022-3+","YEP1022-2","YEP3020","1036-1CLASIC","YEP1020","YEP3080","YEP1017","YEP1016"]', #Devuelve aquellos productos donde la cadena de búsqueda está contenida en el nombre y / o SKU del producto.
-            'SkuSellerList': selected_item_skus, #Se convierte el QuerySet en una lista de strings.
+            'Search': '', #Se convierte el QuerySet en una lista de strings.
             'Filter': 'active'
         }
 
@@ -386,6 +402,7 @@ def lider_stock_prices_report(request):
             if product_sku not in list(lider_products_queryset.values_list('sku', flat=True)):
                 existing_product_not_local.objects.create(incidence_report_id=new_report, sku=product_sku, sku_marketplace=product_wpid, product_name=product_name, product_url=product_url)
                 continue
+            #---- FIN VERIFICACIÓN SI EL PRODUCTO EXISTE EN LA BASE DE DATOS LOCAL ----
 
 
 

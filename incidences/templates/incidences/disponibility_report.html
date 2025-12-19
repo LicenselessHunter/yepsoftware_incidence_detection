@@ -33,6 +33,13 @@
     </div>
 {% endif %}
 
+{% if not_existing_products_in_local %}
+    <div style="background-color: #f0d966; display: flex; width: 90%; margin-left: auto; margin-right: auto; padding: 10px; justify-content: space-between; align-items: center; height: 0.5em;">
+        <p>Estos productos existen en {{marketplace_instance}} pero no están en esta aplicación</p>
+        <button id="not_existing_products_in_local_btn">Ver productos</button>
+    </div>
+{% endif %}
+
 {% if not_available_incidences %}
     <p style="text-align: center;"><em>Se encontraron las siguientes incidencias</em></p>
     {% for incidence in not_available_incidences %}
@@ -85,6 +92,24 @@
         </table>
     </div>
 </div>
+
+
+<!-- not-existing-products-in-local-modal -->
+<div id="not-existing-products-in-local-modal" class="modal">
+    <div class="modal-content">
+        <h2>Estos productos existen en {{marketplace_instance}} pero no están en esta aplicación:</h2>
+        <h3>Mostrando {{not_existing_products_in_local.count}} productos:</h3>
+        {% for product in not_existing_products_in_local %}
+            <br>
+            <p><b>SKU:</b> {{ product.sku }}</p>
+            <p><b>Sku Marketplace:</b> {{ product.sku_marketplace }}</p>
+            <p><b>Nombre:</b> {{ product.product_name }}</p>
+            <p><a href={{product.product_url}} target="_blank">Link del producto</a></p>
+            <br> 
+        {% endfor %}
+    </div>
+</div>
+
 {% endblock %}
 
 

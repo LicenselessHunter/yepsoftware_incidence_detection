@@ -1,7 +1,7 @@
 let dropbtn; /*Esta variable servira de manera global para referenciar al botón de activación del dropdown.
 
 /*Esta función se activa al hacer click en cualquier lugar de la ventana*/
-window.onclick = function(event) { 
+window.addEventListener('click', function(event) { 
   /*Si es que se clickea algún botón para activar el dropdown del sidebar*/
   if (event.target.matches('.dropbtn')) { 
 
@@ -21,4 +21,4 @@ window.onclick = function(event) {
   else if (!event.target.matches('.dropbtn') && dropbtn) {
     dropbtn.nextElementSibling.style.display = "none"; /*Se desactiva el dropdown*/
   }
-}
+});

@@ -1,5 +1,6 @@
 //Función que se ejecutará al hacer click en cualquier lugar de la ventana
-window.onclick = function(event) { 
+window.addEventListener('click', function(event) {
+
     //Si es que se hace click en el botón para ver los productos no scrapeables
     if (event.target.matches('#not_scrapeable_products_btn')) {
         modal = document.getElementById("not-scrapeable-products-modal");
@@ -21,4 +22,4 @@ window.onclick = function(event) {
     else if (event.target.matches('#not-existing-products-in-local-modal')) {
         event.target.style.display = "none";
     }
-}
+});
