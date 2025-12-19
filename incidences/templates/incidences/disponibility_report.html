@@ -98,7 +98,7 @@
 <div id="not-existing-products-in-local-modal" class="modal">
     <div class="modal-content">
         <h2>Estos productos existen en {{marketplace_instance}} pero no están en esta aplicación:</h2>
-        <h3>Mostrando {{not_existing_products_in_local.count}} productos:</h3>
+        <h3>Mostrando {{not_existing_products_in_local.count}} productos</h3>
         {% for product in not_existing_products_in_local %}
             <br>
             <p><b>SKU:</b> {{ product.sku }}</p>
