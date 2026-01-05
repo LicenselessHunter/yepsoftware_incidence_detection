@@ -48,6 +48,13 @@
             </div>
         </div>
 
+        <div class="dropdown">
+            <a id="dropbtn-paris" class="dropbtn">Paris</a>
+            <div id="sidebar-dropdown-paris" class="dropdown-content">
+                <a href="{% url 'products:products' 'paris' %}">Productos registrados</a>
+            </div>
+        </div>
+
     </section>
     
     {% if messages %}
