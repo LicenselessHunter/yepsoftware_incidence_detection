@@ -557,6 +557,206 @@ def get_lider_stock(product_sku, access_token):
     
     return response
 
+
+
+
+@login_required
+def paris_stock_prices_report(request):
+    marketplace_instance = marketplace.objects.get(marketplace_name='Paris')
+    last_incidence_report = incidence_report.objects.filter(marketplace_id__marketplace_name='Paris', report_type='incorrect prices / no stock').last()
+
+    if request.method == 'POST' and 'export_report' in request.POST:
+        #---- La función prices_stock_report_export() se encargará de preparar y exportar el archivo de excel con el informe de incidencias stock y precios. ----
+        return prices_stock_report_export(marketplace_instance, last_incidence_report)
+
+    if request.method == 'POST' and 'initiate_report' in request.POST:
+        paris_products_queryset = product.objects.filter(marketplace_id__marketplace_name='Paris')
+
+        #---- SE OBTIENE ACCESS TOKEN DE PARIS MEDIANTE API ----
+        response = paris_access_token(request)
+
+        if response.status_code != 200:
+            json_to_python_dict  = json.loads(response.text) #Se convierte el response de error de api de walmart de un objeto json a un diccionario de python. Luego esto se volverá a convertir en Json pero formateado para que sea más legible en el mensaje de error.
+            prettify_json_data = json.dumps(json_to_python_dict, indent=4) #Aquí se convierte el diccionario de python a json pero formateado con 4 identaciones.
+            messages.error(request, format_html('Error al intentar obtener el access token. Api de paris dio respuesta: {} <br><br> Respuesta completa: <br> <pre>{}</pre><br>', response.status_code, prettify_json_data)) #Se usa format_html para que el mensaje de error pueda interpretar etiquetas html, como <br> y <pre>. El primer {} representa donde va a ir la variable response.status_code, y el segundo {} representa donde va a ir la variable prettify_json_data. The <pre> tag defines preformatted text. Text in a <pre> element is displayed in a fixed-width font, and the text preserves both spaces and line breaks. The text will be displayed exactly as written in the HTML source code.
+            return redirect('incidences:paris_stock_prices_report')
+
+
+        json_to_python = json.loads(response.text)
+        access_token = 'Bearer ' + json_to_python['accessToken']
+
+
+
+
+        #---- SE OBTIENE DATA DE PRODUCTOS DE PARIS MEDIANTE API ----
+        url = "https://api-developers.ecomm.cencosud.com/v2/products/search?limit=100&offset=0"
+
+        payload = {}
+        headers = {
+            'Accept': 'application/json',
+            'Authorization': access_token
+        }
+
+        response = requests.request("GET", url, headers=headers, data=payload)
+
+        if response.status_code != 200:
+            json_to_python_dict  = json.loads(response.text) #Se convierte el response de error de api de walmart de un objeto json a un diccionario de python. Luego esto se volverá a convertir en Json pero formateado para que sea más legible en el mensaje de error.
+            prettify_json_data = json.dumps(json_to_python_dict, indent=4) #Aquí se convierte el diccionario de python a json pero formateado con 4 identaciones.
+            messages.error(request, format_html('Error al intentar obtener data de productos. Api de paris dio respuesta: {} <br><br> Respuesta completa: <br> <pre>{}</pre><br>', response.status_code, prettify_json_data)) #Se usa format_html para que el mensaje de error pueda interpretar etiquetas html, como <br> y <pre>. El primer {} representa donde va a ir la variable response.status_code, y el segundo {} representa donde va a ir la variable prettify_json_data. The <pre> tag defines preformatted text. Text in a <pre> element is displayed in a fixed-width font, and the text preserves both spaces and line breaks. The text will be displayed exactly as written in the HTML source code.
+            return redirect('incidences:paris_stock_prices_report')
+
+        json_to_python = json.loads(response.text)
+        products_dict = json_to_python['results']
+
+        actual_product_count = len(json_to_python['results'])
+        total_products = json_to_python['total']
+        product_page = 1
+
+
+        while actual_product_count < total_products:
+
+            url = f"https://api-developers.ecomm.cencosud.com/v2/products/search?limit=100&offset={product_page}"
+
+            payload = {}
+            headers = {
+                'Accept': 'application/json',
+                'Authorization': access_token
+            }
+
+            response = requests.request("GET", url, headers=headers, data=payload)
+            if response.status_code != 200:
+                json_to_python_dict  = json.loads(response.text) #Se convierte el response de error de api de walmart de un objeto json a un diccionario de python. Luego esto se volverá a convertir en Json pero formateado para que sea más legible en el mensaje de error.
+                prettify_json_data = json.dumps(json_to_python_dict, indent=4) #Aquí se convierte el diccionario de python a json pero formateado con 4 identaciones.
+                messages.error(request, format_html('Error al intentar obtener data de productos. Api de paris dio respuesta: {} <br><br> Respuesta completa: <br> <pre>{}</pre><br>', response.status_code, prettify_json_data)) #Se usa format_html para que el mensaje de error pueda interpretar etiquetas html, como <br> y <pre>. El primer {} representa donde va a ir la variable response.status_code, y el segundo {} representa donde va a ir la variable prettify_json_data. The <pre> tag defines preformatted text. Text in a <pre> element is displayed in a fixed-width font, and the text preserves both spaces and line breaks. The text will be displayed exactly as written in the HTML source code.
+                return redirect('incidences:paris_stock_prices_report')
+
+            json_to_python = json.loads(response.text)
+            products_dict = products_dict + json_to_python['results']
+
+            actual_product_count += len(json_to_python['results'])
+            product_page += 1
+
+
+        products_dict = {d['id']: d for d in products_dict}
+
+
+
+
+        #---- SE OBTIENE DATA DE STOCK DE PARIS MEDIANTE API ----
+        url = "https://api-developers.ecomm.cencosud.com/v2/stock?offset=0&limit=300&withStock=false"
+
+        payload = {}
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': access_token
+        }
+
+        response = requests.request("GET", url, headers=headers, data=payload)
+
+        if response.status_code != 200:
+            json_to_python_dict  = json.loads(response.text) #Se convierte el response de error de api de walmart de un objeto json a un diccionario de python. Luego esto se volverá a convertir en Json pero formateado para que sea más legible en el mensaje de error.
+            prettify_json_data = json.dumps(json_to_python_dict, indent=4) #Aquí se convierte el diccionario de python a json pero formateado con 4 identaciones.
+            messages.error(request, format_html('Error al intentar obtener data de stock. Api de paris dio respuesta: {} <br><br> Respuesta completa: <br> <pre>{}</pre><br>', response.status_code, prettify_json_data)) #Se usa format_html para que el mensaje de error pueda interpretar etiquetas html, como <br> y <pre>. El primer {} representa donde va a ir la variable response.status_code, y el segundo {} representa donde va a ir la variable prettify_json_data. The <pre> tag defines preformatted text. Text in a <pre> element is displayed in a fixed-width font, and the text preserves both spaces and line breaks. The text will be displayed exactly as written in the HTML source code.
+            return redirect('incidences:paris_stock_prices_report')
+
+        json_to_python = json.loads(response.text)
+        stock_dict = json_to_python['skus']
+
+
+
+
+        #---- Llamada a la función que creará un nuebo objeto del model 'incidence_report' ----
+        new_report = generate_incidence_report(marketplace_instance, last_incidence_report, 'incorrect prices / no stock', len(stock_dict), request)
+
+        for product_item in stock_dict:
+            marketplace_sku = product_item['sku']
+            parent_sku = marketplace_sku[0:-2]
+            seller_sku = product_item['sku_seller']
+            product_name = product_item['title']
+            product_stock = product_item['quantity']
+
+
+            for variant in products_dict[parent_sku]['variants']:
+
+                if variant['sku'] == marketplace_sku:
+
+                    product_special_price = None
+                    for price in variant['prices']:
+
+                        if price['type']['name'] == 'Precio':
+                            product_price = price['value']
+
+                        if price['type']['name'] == 'Precio oferta':
+                            product_special_price = price['value']
+
+            product_url = unidecode.unidecode(f"https://www.paris.cl/{product_name.replace(' ', '-').lower()}-{parent_sku}.html") 
+
+            #---- VERIFICACIÓN SI EL PRODUCTO EXISTE EN LA BASE DE DATOS LOCAL ----
+            if seller_sku not in list(paris_products_queryset.values_list('sku', flat=True)):
+                existing_product_not_local.objects.create(incidence_report_id=new_report, sku=seller_sku, sku_marketplace=marketplace_sku, product_name=product_name, product_url=product_url)
+                continue
+            #---- FIN VERIFICACIÓN SI EL PRODUCTO EXISTE EN LA BASE DE DATOS LOCAL ----
+
+            product_instance = paris_products_queryset.get(sku=seller_sku)
+
+
+            #---- INCIDENCIA STOCK ----
+            if product_stock <= 0:
+                incidence_group = product_incidence_group.objects.create(incidence_report_id=new_report, product_id=product_instance, product_url=product_url)
+
+                no_stock_incidence.objects.create(incidence_group_id=incidence_group, stock=product_stock)
+
+            #---- INCIDENCIA PRECIO NORMAL ----
+            price_incidence_evaluation(product_price, product_instance, new_report, product_url)
+
+
+            #---- INCIDENCIA PRECIO DESCUENTO ----
+            special_price_incidence_evaluation(product_special_price, product_instance, new_report, product_url)
+
+        messages.success(request, 'El informe de stock y precios ha sido generado correctamente.')
+
+        return redirect('incidences:paris_stock_prices_report')
+
+
+
+    try:
+        products_without_stock = no_stock_incidence.objects.filter(incidence_group_id__incidence_report_id=last_incidence_report)
+        price_incidences = price_incidence.objects.filter(incidence_group_id__incidence_report_id=last_incidence_report)
+        special_price_incidences = special_price_incidence.objects.filter(incidence_group_id__incidence_report_id=last_incidence_report)
+        incidence_groups = product_incidence_group.objects.filter(incidence_report_id=last_incidence_report.id)
+        not_scrapeable_products_queryset = not_scrapeable_product.objects.filter(incidence_report_id=last_incidence_report.id)
+        not_existing_products_in_local = existing_product_not_local.objects.filter(incidence_report_id=last_incidence_report.id)
+
+        context = {
+            'marketplace_instance': marketplace_instance,
+            'last_incidence_report': last_incidence_report,
+            'products_without_stock': products_without_stock,
+            'price_incidences': price_incidences,
+            'special_price_incidences': special_price_incidences,
+            'incidence_groups': incidence_groups,
+            'not_scrapeable_products': not_scrapeable_products_queryset,
+            'not_existing_products_in_local': not_existing_products_in_local,
+        }
+
+        return render(request, 'incidences/stock_prices_report.html', context)
+
+    except:
+        return render(request, 'incidences/stock_prices_report.html', {'marketplace_instance': marketplace_instance})
+
+
+def paris_access_token(request):
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': settings.PARIS_API_KEY
+    }
+
+    response = requests.post('https://api-developers.ecomm.cencosud.com/v1/auth/apiKey', headers=headers)
+
+    return response
+
+
+
 def generate_incidence_report(marketplace_instance, last_incidence_report, report_type_str, inspected_products_len, request):
     if last_incidence_report: #Ya existe un reporte de incidencias previo, por lo que se crea uno nuevo con el número de reporte incrementado en 1.
         new_report = incidence_report.objects.create(marketplace_id=marketplace_instance, report_number=last_incidence_report.report_number + 1, report_type=report_type_str, inspected_products=inspected_products_len, created_by=request.user)
