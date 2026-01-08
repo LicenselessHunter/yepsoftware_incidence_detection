@@ -342,12 +342,13 @@ def lider_stock_prices_report(request):
             'WM_SEC.ACCESS_TOKEN': access_token,
             'WM_QOS.CORRELATION_ID': guid_string,
             'WM_SVC.NAME': 'Walmart Marketplace',
+            'WM_GLOBAL_VERSION': '3.1',
             'accept': 'application/json'
         }
 
         params = {
-            'limit': '50',
-            'nextCursor': '*' #Por defecto, la API de walmart solo entrega hasta 50 productos por consulta. Si se especifíca este parámetro, el response nos dará una variable 'nextCursor' que servira para hacer una nueva consulta para obtener los productos de la "siguiente página" (Los 50 productos que siguen).
+            'limit': '200',
+            'nextCursor': '*' #Por defecto, la API de walmart solo entrega hasta 200 productos por consulta. Si se especifíca este parámetro, el response nos dará una variable 'nextCursor' que servira para hacer una nueva consulta para obtener los productos de la "siguiente página" (Los 200 productos que siguen).
         }
 
         response = requests.get('https://marketplace.walmartapis.com/v3/items?publishedStatus=PUBLISHED', params=params, headers=headers)
@@ -552,6 +553,7 @@ def get_lider_stock(product_sku, access_token):
         'WM_SEC.ACCESS_TOKEN': access_token,
         'WM_QOS.CORRELATION_ID': guid_string,
         'WM_SVC.NAME': 'Walmart Marketplace',
+        'WM_GLOBAL_VERSION': '3.1',
         'accept': 'application/json'
     }
 
