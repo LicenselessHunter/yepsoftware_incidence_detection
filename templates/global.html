@@ -52,6 +52,7 @@
             <a id="dropbtn-paris" class="dropbtn">Paris</a>
             <div id="sidebar-dropdown-paris" class="dropdown-content">
                 <a href="{% url 'products:products' 'paris' %}">Productos registrados</a>
+                <a href="{% url 'incidences:paris_product_disponibility'%}">Disponibilidad productos</a>
                 <a href="{% url 'incidences:paris_stock_prices_report'%}">Estado de precios/stock</a>
             </div>
         </div>
