@@ -47,7 +47,23 @@ INSTALLED_APPS = [
     'products',
     'incidences',
     'fontawesomefree',
+    'django_q', #Django Q2 is a native Django task queue, scheduler and worker application using Python multiprocessing. Doc: https://django-q2.readthedocs.io/en/master/index.html
 ]
+
+#A Distributed Task Queue is a system used in distributed computing to manage and coordinate tasks across multiple machines or servers. Instead of one machine handling all tasks, a distributed task queue spreads out the work, making the process faster and more efficient. Each task is placed in a queue, and available workers pick up and complete tasks as they come in. This approach helps balance the workload, improves system reliability, and ensures that tasks are completed even if some machines fail. It's commonly used in large-scale applications and cloud services.
+
+
+# Configure your Q cluster
+# Django Q2 uses Python’s multiprocessing module to manage a pool of workers that will handle your tasks. tart your cluster using Django’s manage.py command: python manage.py qcluster
+Q_CLUSTER = {
+    'name': 'AsyncBroker', #Used to differentiate between projects using the same broker. On most broker types this will be used as the queue name. Defaults to 'default'.
+    'workers': 4, #The number of workers to use in the cluster. Defaults to CPU count of the current host, but can be set to a custom number.
+    'timeout': 800, #The number of seconds a worker is allowed to spend on a task before it’s terminated. Defaults to None, meaning it will never time out. Set this to something that makes sense for your project. Can be overridden for individual tasks.
+    'retry': 900, #The number of seconds a broker will wait for a cluster to finish a task, before it’s presented again. Only works with brokers that support delivery receipts. Defaults to 60.
+    #The value must be bigger than the time it takes to complete longest task, i.e. timeout must be less than retry value and all tasks must complete in less time than the selected retry time. If this does not hold, i.e. the retry value is less than timeout or less than it takes to finish a task, Django-Q2 will start the task again if the used broker supports receipts.
+    'queue_limit': 50, #This does not limit the amount of tasks that can be queued on the broker, but rather how many tasks are kept in memory by a single cluster. Setting this to a reasonable number, can help balance the workload and the memory overhead of each individual cluster. Defaults to workers**2.
+    'orm': 'default' # Use Django's ORM + database for broker. The broker sits between your Django instances and your Django Q2 cluster instances; accepting, saving and delivering task packages. Currently we support a variety of brokers. Is more or less like a post office box: it takes messages, holds them in a queue, and folks from around the city can retrieve these messages later.
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

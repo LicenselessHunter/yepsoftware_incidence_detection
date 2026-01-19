@@ -13,6 +13,7 @@ button {
     display: flex; 
     align-items: center; 
     justify-content: flex-end;
+    z-index: 1;
 }
 
 
@@ -25,6 +26,7 @@ button {
     top: 2em; 
     height: 100%; 
     width: 7em;
+    z-index: 1;
 }
 
 #sidebar-nav a {
@@ -171,4 +173,35 @@ button {
 #not-existing-products-in-local-modal .modal-content {
     width: 50%;
     background-color: #ffffff;
+}
+
+
+
+/*---- error-message-modal-report ----*/
+[id^="error-message-modal-report"] .modal-content { /*Selector para todos los ids que comienzan con "error-message-modal-report"*/
+    width: 50%;
+    background-color: #F69F9F;
+}
+
+
+
+/*---- incidence-report-list ----*/
+#incidence-report-list {
+    min-width: 85%;
+    text-align: center;
+}
+
+.completed-status-incidence-report {
+    color: green;
+    font-weight: bold;
+}
+
+.in-progress-status-incidence-report {
+    color: orange;
+    font-weight: bold;
+}
+
+.failed-status-incidence-report {
+    color: red;
+    font-weight: bold;
 }

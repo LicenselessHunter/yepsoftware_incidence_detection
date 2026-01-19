@@ -8,6 +8,8 @@ dependencies==7.7.1
 diff-match-patch==20241021
 Django==5.2.6
 django-import-export==4.3.10
+django-picklefield==3.4.0
+django-q2==1.9.0
 et_xmlfile==2.0.0
 fontawesomefree==6.6.0
 git-filter-repo==2.47.0

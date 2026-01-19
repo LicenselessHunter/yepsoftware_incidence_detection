@@ -6,7 +6,11 @@
 <div id = "report_btns" style="position: relative; right: 10%;">
     <form method="POST">
         {% csrf_token %}
-        <button name="initiate_report">Iniciar reporte</button>
+        
+        {% if not last_incidence_report_in_progress %}
+            <button name="initiate_report">Iniciar reporte</button>
+        {% endif %}
+
         {% if incidence_groups %}
             <button name="export_report">Exportar reporte</button>
         {% endif %}
@@ -16,12 +20,18 @@
 
 
 {% block content %}
-<h1 style="text-align: center;">Reporte de disponibilidad<br>{{marketplace_instance}} N°{{last_incidence_report.report_number}}</h1>
+<a href="{% url 'incidences:disponibility_report_list' marketplace_instance.slug %}" style="position: absolute; left: 85%; z-index: 0;">Ver listado de reportes</a>
 
-<p style="text-align: center;"><em>{{last_incidence_report.report_date_time}}</em></p>
+{% if last_incidence_report_in_progress %}
+    <h4 style="text-align: center; color: #C94444;"><i>*Se está generando un nuevo reporte en este instante</i></h4>
+{% endif %}
+
+<h1 style="text-align: center;">Reporte de disponibilidad<br>{{marketplace_instance}} N°{{last_incidence_report_completed.report_number}}</h1>
+
+<p style="text-align: center;"><em>{{last_incidence_report_completed.report_date_time}}</em></p>
 
 <div style="display: flex; text-align: center; justify-content: space-evenly;">
-    <h2>Productos<br>revisados: <br>{{last_incidence_report.inspected_products}}</h2>
+    <h2>Productos<br>revisados: <br>{{last_incidence_report_completed.inspected_products}}</h2>
 
     <h2>Productos<br>no disponibles: <br>{{not_available_products_count}}</h2>
 </div>

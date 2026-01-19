@@ -28,18 +28,23 @@ import unidecode
 from django.contrib.auth.decorators import login_required #Se importa el decorator.
 from django.utils.html import format_html #django.utils.html.format_html is a security-oriented utility function used to construct HTML fragments safely within Python code (like views.py or models.py) without the risk of cross-site scripting (XSS) attacks. 
 
-from selenium import webdriver #import the webdriver module from the selenium library. This import is the foundational step for using Selenium WebDriver in Python to automate web browsers.
 
-    #The webdriver module provides the necessary classes and functions to interact with various web browsers, such as Chrome, Firefox, Edge, Safari, and others.
-
-    #It allows you to create instances of browser drivers (e.g., webdriver.Chrome(), webdriver.Firefox()), which then enable you to control the respective browser programmatically.
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By #‘By’ class is used to specify which attribute is used to locate elements on a page.
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC #Expected Conditions are used with Explicit Waits. Instead of defining the block of code to be executed with a lambda, an expected conditions method can be created to represent common things that get waited on. Some methods take locators as arguments, others take elements as arguments.
-
+from django_q.tasks import async_task
 
 # Create your views here.
+@login_required
+def disponibility_report_list(request, slug):
+    marketplace_instance = marketplace.objects.get(slug = slug)
+    disponibility_reports_query = incidence_report.objects.filter(marketplace_id=marketplace_instance, report_type='not sellable with stock').order_by('-report_date_time')
+
+    context = {
+        'marketplace_instance': marketplace_instance,
+        'disponibility_reports_query': disponibility_reports_query,
+    }
+
+    return render(request, 'incidences/disponibility_report_list.html', context)
+
+
 @login_required
 def falabella_product_disponibility(request):
     marketplace_instance = marketplace.objects.get(marketplace_name='Falabella')
@@ -567,192 +572,45 @@ def paris_product_disponibility(request):
     marketplace_instance = marketplace.objects.get(marketplace_name='Paris')
     last_incidence_report = incidence_report.objects.filter(marketplace_id__marketplace_name='Paris', report_type='not sellable with stock').last()
 
+    last_incidence_report_completed = incidence_report.objects.filter(marketplace_id__marketplace_name='Paris', report_type='not sellable with stock', report_status='Completed').last()
+
+    last_incidence_report_in_progress = incidence_report.objects.filter(marketplace_id__marketplace_name='Paris', report_type='not sellable with stock', report_status='In progress')
+
     if request.method == 'POST' and 'export_report' in request.POST:
         #---- La función disponibility_report_export() se encargará de preparar y exportar el archivo de excel con el informe de incidencias de disponibilidad. ----
-        return disponibility_report_export(marketplace_instance, last_incidence_report)
+        return disponibility_report_export(marketplace_instance, last_incidence_report_completed)
 
     if request.method == 'POST' and 'initiate_report' in request.POST:
-        paris_products_queryset = product.objects.filter(marketplace_id__marketplace_name='Paris')
 
-        #---- SE OBTIENE ACCESS TOKEN DE PARIS MEDIANTE API ----
-        response = paris_access_token(request)
+        
+        if last_incidence_report_in_progress.exists():
 
-        if response.status_code != 200:
-            json_to_python_dict  = json.loads(response.text) #Se convierte el response de error de api de walmart de un objeto json a un diccionario de python. Luego esto se volverá a convertir en Json pero formateado para que sea más legible en el mensaje de error.
-            prettify_json_data = json.dumps(json_to_python_dict, indent=4) #Aquí se convierte el diccionario de python a json pero formateado con 4 identaciones.
-            messages.error(request, format_html('Error al intentar obtener el access token. Api de paris dio respuesta: {} <br><br> Respuesta completa: <br> <pre>{}</pre><br>', response.status_code, prettify_json_data)) #Se usa format_html para que el mensaje de error pueda interpretar etiquetas html, como <br> y <pre>. El primer {} representa donde va a ir la variable response.status_code, y el segundo {} representa donde va a ir la variable prettify_json_data. The <pre> tag defines preformatted text. Text in a <pre> element is displayed in a fixed-width font, and the text preserves both spaces and line breaks. The text will be displayed exactly as written in the HTML source code.
-            return redirect('incidences:paris_stock_prices_report')
-
-
-        json_to_python = json.loads(response.text)
-        access_token = 'Bearer ' + json_to_python['accessToken']
-
-
-        #---- SE OBTIENE DATA DE PRODUCTOS DE PARIS MEDIANTE API ----
-        url = "https://api-developers.ecomm.cencosud.com/v2/products/search?limit=100&offset=0"
-
-        payload = {}
-        headers = {
-            'Accept': 'application/json',
-            'Authorization': access_token
-        }
-
-        response = requests.request("GET", url, headers=headers, data=payload)
-
-        if response.status_code != 200:
-            json_to_python_dict  = json.loads(response.text) #Se convierte el response de error de api de walmart de un objeto json a un diccionario de python. Luego esto se volverá a convertir en Json pero formateado para que sea más legible en el mensaje de error.
-            prettify_json_data = json.dumps(json_to_python_dict, indent=4) #Aquí se convierte el diccionario de python a json pero formateado con 4 identaciones.
-            messages.error(request, format_html('Error al intentar obtener data de productos. Api de paris dio respuesta: {} <br><br> Respuesta completa: <br> <pre>{}</pre><br>', response.status_code, prettify_json_data)) #Se usa format_html para que el mensaje de error pueda interpretar etiquetas html, como <br> y <pre>. El primer {} representa donde va a ir la variable response.status_code, y el segundo {} representa donde va a ir la variable prettify_json_data. The <pre> tag defines preformatted text. Text in a <pre> element is displayed in a fixed-width font, and the text preserves both spaces and line breaks. The text will be displayed exactly as written in the HTML source code.
-            return redirect('incidences:paris_stock_prices_report')
-
-        json_to_python = json.loads(response.text)
-        products_dict = json_to_python['results']
-
-        actual_product_count = len(json_to_python['results'])
-        total_products = json_to_python['total']
-        product_page = 1
-
-
-        while actual_product_count < total_products:
-
-            url = f"https://api-developers.ecomm.cencosud.com/v2/products/search?limit=100&offset={product_page}"
-
-            payload = {}
-            headers = {
-                'Accept': 'application/json',
-                'Authorization': access_token
-            }
-
-            response = requests.request("GET", url, headers=headers, data=payload)
-            if response.status_code != 200:
-                json_to_python_dict  = json.loads(response.text) #Se convierte el response de error de api de walmart de un objeto json a un diccionario de python. Luego esto se volverá a convertir en Json pero formateado para que sea más legible en el mensaje de error.
-                prettify_json_data = json.dumps(json_to_python_dict, indent=4) #Aquí se convierte el diccionario de python a json pero formateado con 4 identaciones.
-                messages.error(request, format_html('Error al intentar obtener data de productos. Api de paris dio respuesta: {} <br><br> Respuesta completa: <br> <pre>{}</pre><br>', response.status_code, prettify_json_data)) #Se usa format_html para que el mensaje de error pueda interpretar etiquetas html, como <br> y <pre>. El primer {} representa donde va a ir la variable response.status_code, y el segundo {} representa donde va a ir la variable prettify_json_data. The <pre> tag defines preformatted text. Text in a <pre> element is displayed in a fixed-width font, and the text preserves both spaces and line breaks. The text will be displayed exactly as written in the HTML source code.
-                return redirect('incidences:paris_stock_prices_report')
-
-            json_to_python = json.loads(response.text)
-            products_dict = products_dict + json_to_python['results']
-
-            actual_product_count += len(json_to_python['results'])
-            product_page += 1
-
-
-        products_dict = {d['id']: d for d in products_dict}
-
-
-
-        #---- SE OBTIENE DATA DE STOCK DE PARIS MEDIANTE API ----
-        url = "https://api-developers.ecomm.cencosud.com/v2/stock?offset=0&limit=300&withStock=true"
-
-        payload = {}
-        headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': access_token
-        }
-
-        response = requests.request("GET", url, headers=headers, data=payload)
-
-        if response.status_code != 200:
-            json_to_python_dict  = json.loads(response.text) #Se convierte el response de error de api de walmart de un objeto json a un diccionario de python. Luego esto se volverá a convertir en Json pero formateado para que sea más legible en el mensaje de error.
-            prettify_json_data = json.dumps(json_to_python_dict, indent=4) #Aquí se convierte el diccionario de python a json pero formateado con 4 identaciones.
-            messages.error(request, format_html('Error al intentar obtener data de stock. Api de paris dio respuesta: {} <br><br> Respuesta completa: <br> <pre>{}</pre><br>', response.status_code, prettify_json_data)) #Se usa format_html para que el mensaje de error pueda interpretar etiquetas html, como <br> y <pre>. El primer {} representa donde va a ir la variable response.status_code, y el segundo {} representa donde va a ir la variable prettify_json_data. The <pre> tag defines preformatted text. Text in a <pre> element is displayed in a fixed-width font, and the text preserves both spaces and line breaks. The text will be displayed exactly as written in the HTML source code.
-            return redirect('incidences:paris_stock_prices_report')
-
-        json_to_python = json.loads(response.text)
-        stock_dict = json_to_python['skus']
-
-
+            messages.error(request, 'Ya existe un informe de disponibilidad de productos en progreso. Espere a que este finalice antes de iniciar uno nuevo.')
+            return redirect('incidences:disponibility_report_list', slug = marketplace_instance.slug)
 
 
         #---- Llamada a la función que creará un nuevo objeto del model 'incidence_report' ----
-        new_report = generate_incidence_report(marketplace_instance, last_incidence_report, 'not sellable with stock', len(stock_dict), request)
+        new_report = generate_incidence_report(marketplace_instance, last_incidence_report, 'not sellable with stock', None, request)
 
-
-        for product_item in stock_dict:
-            marketplace_sku = product_item['sku']
-            parent_sku = marketplace_sku[0:-2]
-            seller_sku = product_item['sku_seller']
-            product_name = product_item['title']
-            product_stock = product_item['quantity']
-
-            product_url = unidecode.unidecode(f"https://www.paris.cl/{product_name.replace(' ', '-').lower()}-{marketplace_sku}.html")
-            product_instance = paris_products_queryset.get(sku=seller_sku)
-
-            #---- VERIFICACIÓN SI EL PRODUCTO EXISTE EN LA BASE DE DATOS LOCAL ----
-            if seller_sku not in list(paris_products_queryset.values_list('sku', flat=True)):
-                existing_product_not_local.objects.create(incidence_report_id=new_report, sku=seller_sku, sku_marketplace=marketplace_sku, product_name=product_name, product_url=product_url)
-                continue
-            #---- FIN VERIFICACIÓN SI EL PRODUCTO EXISTE EN LA BASE DE DATOS LOCAL ----
-
-            for variant in products_dict[parent_sku]['publish']['mkp']:
-                if variant['variantSku'] == marketplace_sku:
-
-                    product_publish_status = variant['publish']
-
-
-            if product_publish_status == False:
-                incidence_group = product_incidence_group.objects.create(incidence_report_id=new_report, product_id=product_instance, product_url=product_url)
-                unsellable_incidence.objects.create(incidence_group_id=incidence_group, stock=product_stock)
-                continue
-
-
-
-
-            #---- SCRAPING A PRODUCTO DE PARIS PARA VER SI TIENE BOTÓN DE COMPRA ----
-            chrome_options = Options()
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--headless") #Esto va a evitar que selenium abra la página al correr el script.
-            chrome_options.add_argument("--disable-gpu")
-            chrome_options.add_argument('--disable-dev-shm-usage')
-
-
-            driver = webdriver.Chrome(options=chrome_options)# Initialize a WebDriver instance (e.g., Chrome. Initializes a new instance of the Chrome web browser for automated testing or web scraping.
-
-            #webdriver: This refers to the webdriver module from the Selenium library, which provides the necessary classes and functions to interact with various web browsers.
-
-            #.Chrome(): This specifically calls the Chrome class within the webdriver module. This class represents the ChromeDriver, a standalone server that implements the W3C WebDriver standard for controlling the Chrome browser.
-
-            driver.get(product_url)
-
-            try:
-                #Aquí estamos usando un 'explicit wait'. An explicit wait is a code you define to wait for a certain condition to occur before proceeding further in the code. The extreme case of this is time.sleep(), which sets the condition to an exact time period to wait.
-
-                #WebDriverWait is a class in Selenium used to implement explicit waits, which pause code execution until a specific condition is met or a timeout occurs. Aquí estamos diciendo que se pause la ejecución del código hasta que el elemento de la clase 'flex gap-2 flex-col tablet_w:flex-row flex-g' sea encontrada o pasen los 10 de 'timeout' especificado en el segundo parámetro.
-                element = WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH, "//*[@class='flex gap-2 flex-col tablet_w:flex-row flex-g']")) #XPath is the language used for locating nodes in an XML document. As HTML can be an implementation of XML (XHTML), Selenium users can leverage this powerful language to target elements in their web applications. En mi caso, lo uso para poder buscar esta "clase compuesta" ya que By.CLASS_NAME no es bueno para buscar clases compuestas.
-                    
-                )
-
-            except:
-                driver.quit()
-                incidence_group = product_incidence_group.objects.create(incidence_report_id=new_report, product_id=product_instance, product_url=product_url)
-
-                unsellable_incidence.objects.create(incidence_group_id=incidence_group, stock=product_stock)
-                continue
-
-            driver.quit()
-
-        messages.success(request, 'El informe de disponibilidad de productos ha sido generado correctamente.')
-
-        return redirect('incidences:paris_product_disponibility')
-
-            
-            
-
-
+        async_task("incidences.async_functions.paris_disponibility_report", new_report)
+        
+        messages.success(request, 'El informe de disponibilidad se ha inicializado correctamente.')
+        return redirect('incidences:disponibility_report_list', slug = marketplace_instance.slug)
+        
+        
     try:
-        not_available_products_queryset = product_incidence_group.objects.filter(incidence_report_id=last_incidence_report.id)
+        not_available_products_queryset = product_incidence_group.objects.filter(incidence_report_id=last_incidence_report_completed.id)
         not_available_products_count = not_available_products_queryset.count()
 
         not_available_incidences = unsellable_incidence.objects.filter(incidence_group_id__in=not_available_products_queryset)
-        incidence_groups = product_incidence_group.objects.filter(incidence_report_id=last_incidence_report.id)
-        not_scrapeable_products_queryset = not_scrapeable_product.objects.filter(incidence_report_id=last_incidence_report.id)
-        not_existing_products_in_local = existing_product_not_local.objects.filter(incidence_report_id=last_incidence_report.id)
+        incidence_groups = product_incidence_group.objects.filter(incidence_report_id=last_incidence_report_completed.id)
+        not_scrapeable_products_queryset = not_scrapeable_product.objects.filter(incidence_report_id=last_incidence_report_completed.id)
+        not_existing_products_in_local = existing_product_not_local.objects.filter(incidence_report_id=last_incidence_report_completed.id)
 
         context = {
+            'last_incidence_report_in_progress': last_incidence_report_in_progress,
             'marketplace_instance': marketplace_instance,
-            'last_incidence_report': last_incidence_report,
+            'last_incidence_report_completed': last_incidence_report_completed,
             'not_available_products_count': not_available_products_count,
             'not_available_incidences': not_available_incidences,
             'not_scrapeable_products': not_scrapeable_products_queryset,
@@ -763,7 +621,13 @@ def paris_product_disponibility(request):
         return render(request, 'incidences/disponibility_report.html', context)
 
     except:
-        return render(request, 'incidences/disponibility_report.html', {'marketplace_instance': marketplace_instance})
+
+        context = {
+            'last_incidence_report_in_progress': last_incidence_report_in_progress,
+            'marketplace_instance': marketplace_instance
+        }
+
+        return render(request, 'incidences/disponibility_report.html', context)
 
 
 @login_required
@@ -779,7 +643,7 @@ def paris_stock_prices_report(request):
         paris_products_queryset = product.objects.filter(marketplace_id__marketplace_name='Paris')
 
         #---- SE OBTIENE ACCESS TOKEN DE PARIS MEDIANTE API ----
-        response = paris_access_token(request)
+        response = paris_access_token()
 
         if response.status_code != 200:
             json_to_python_dict  = json.loads(response.text) #Se convierte el response de error de api de walmart de un objeto json a un diccionario de python. Luego esto se volverá a convertir en Json pero formateado para que sea más legible en el mensaje de error.
@@ -951,7 +815,7 @@ def paris_stock_prices_report(request):
         return render(request, 'incidences/stock_prices_report.html', {'marketplace_instance': marketplace_instance})
 
 
-def paris_access_token(request):
+def paris_access_token():
     headers = {
         'Content-Type': 'application/json',
         'Authorization': settings.PARIS_API_KEY
@@ -965,10 +829,10 @@ def paris_access_token(request):
 
 def generate_incidence_report(marketplace_instance, last_incidence_report, report_type_str, inspected_products_len, request):
     if last_incidence_report: #Ya existe un reporte de incidencias previo, por lo que se crea uno nuevo con el número de reporte incrementado en 1.
-        new_report = incidence_report.objects.create(marketplace_id=marketplace_instance, report_number=last_incidence_report.report_number + 1, report_type=report_type_str, inspected_products=inspected_products_len, created_by=request.user)
+        new_report = incidence_report.objects.create(marketplace_id=marketplace_instance, report_number=last_incidence_report.report_number + 1, report_type=report_type_str, inspected_products=inspected_products_len, created_by=request.user, report_status='In progress')
 
     else: #Se crea el primer reporte de incidencias para este contexto.
-        new_report = incidence_report.objects.create(marketplace_id=marketplace_instance, report_number=1, report_type=report_type_str, inspected_products=inspected_products_len, created_by=request.user)
+        new_report = incidence_report.objects.create(marketplace_id=marketplace_instance, report_number=1, report_type=report_type_str, inspected_products=inspected_products_len, created_by=request.user, report_status='In progress')
     
     return new_report
 

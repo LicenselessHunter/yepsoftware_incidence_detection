@@ -10,13 +10,21 @@ REPORT_TYPE = (
 	('incorrect prices / no stock', 'incorrect prices / no stock')
 )
 
+REPORT_STATUS = (
+    ('In progress', 'In progress'),
+    ('Completed', 'Completed'),
+    ('Failed', 'Failed'),
+)
+
 class incidence_report(models.Model):
     report_number = models.PositiveIntegerField(null=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_DEFAULT, default=None, null=True)
     report_date_time = models.DateTimeField(auto_now_add=True)
     marketplace_id = models.ForeignKey(marketplace, on_delete=models.CASCADE)
-    inspected_products = models.PositiveIntegerField()
+    inspected_products = models.PositiveIntegerField(null=True)
     report_type = models.CharField(max_length=50, choices=REPORT_TYPE, blank=False)
+    report_status = models.CharField(max_length=15, choices=REPORT_STATUS, blank=False)
+    error_message = models.TextField(null=True)
 
 
 class product_incidence_group(models.Model):
