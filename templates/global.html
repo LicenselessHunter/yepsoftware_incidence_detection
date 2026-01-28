@@ -35,8 +35,8 @@
             <a id="dropbtn-falabella" class="dropbtn">Falabella</a>
             <div id="sidebar-dropdown-falabella" class="dropdown-content">
                 <a href="{% url 'products:products' 'falabella' %}">Productos registrados</a>
-                <a href="{% url 'incidences:falabella_product_disponibility'%}">Disponibilidad productos</a>
-                <a href="{% url 'incidences:falabella_stock_prices_report'%}">Estado de precios/stock</a>
+                <a href="{% url 'incidences:disponibility_report' 'falabella' %}">Disponibilidad productos</a>
+                <a href="{% url 'incidences:stock_prices_report' 'falabella' %}">Estado de precios/stock</a>
             </div>
         </div>
 
@@ -44,7 +44,7 @@
             <a id="dropbtn-lider" class="dropbtn">Lider</a>
             <div id="sidebar-dropdown-lider" class="dropdown-content">
                 <a href="{% url 'products:products' 'lider' %}">Productos registrados</a>
-                <a href="{% url 'incidences:lider_stock_prices_report'%}">Estado de precios/stock</a>
+                <a href="{% url 'incidences:stock_prices_report' 'lider' %}">Estado de precios/stock</a>
             </div>
         </div>
 
@@ -52,8 +52,8 @@
             <a id="dropbtn-paris" class="dropbtn">Paris</a>
             <div id="sidebar-dropdown-paris" class="dropdown-content">
                 <a href="{% url 'products:products' 'paris' %}">Productos registrados</a>
-                <a href="{% url 'incidences:paris_product_disponibility'%}">Disponibilidad productos</a>
-                <a href="{% url 'incidences:paris_stock_prices_report'%}">Estado de precios/stock</a>
+                <a href="{% url 'incidences:disponibility_report' 'paris' %}">Disponibilidad productos</a>
+                <a href="{% url 'incidences:stock_prices_report' 'paris' %}">Estado de precios/stock</a>
             </div>
         </div>
 

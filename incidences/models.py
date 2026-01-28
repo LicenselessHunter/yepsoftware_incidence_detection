@@ -24,7 +24,7 @@ class incidence_report(models.Model):
     inspected_products = models.PositiveIntegerField(null=True)
     report_type = models.CharField(max_length=50, choices=REPORT_TYPE, blank=False)
     report_status = models.CharField(max_length=15, choices=REPORT_STATUS, blank=False)
-    error_message = models.TextField(null=True)
+    error_message = models.TextField(null=True, blank=True)
 
 
 class product_incidence_group(models.Model):

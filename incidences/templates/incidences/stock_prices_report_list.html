@@ -1,0 +1,69 @@
+{% extends 'global.html' %}
+{% block title %}Lista de reportes de precios/stock {{marketplace_instance}}{% endblock %}
+{% load static %} <!--Módulo para static files. The load static tag does not load static files. It’s purpose is to allow you to use the static tag in your template.-->
+
+{% block content %}
+
+<h1>Reportes de precios/stock {{marketplace_instance}}</h1>
+
+<table id = "incidence-report-list">
+    <thead>
+        <tr>
+            <th>N° del reporte</th>
+            <th>Fecha y hora</th>
+            <th>Productos examinados</th>
+            <th>Productos sin stock</th>
+            <th>Incidencias precio</th>
+            <th>Incidencias precio descuento</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for report in stock_prices_reports_query %}
+            <tr>
+                <td>{{ report.report_number }}</td>
+                <td>{{ report.report_date_time }}</td>
+
+                {% if report.report_status == 'Completed' %}
+                    <td>{{ report.inspected_products }}</td>
+                    <td>{{ report.no_stock_count }}</td>
+                    <td>{{ report.price_incidence_count }}</td>
+                    <td>{{ report.special_price_incidence_count }}</td>
+                    <td class = "completed-status-incidence-report">Completado</td>
+
+                {% elif report.report_status == 'In progress' %}
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td class = "in-progress-status-incidence-report">En progreso</td>
+
+                {% elif report.report_status == 'Failed' %}
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td class = "failed-status-incidence-report">Fallido</td>
+                    <td><button id={{report.id}} class="open-report-error-btn">Ver error</button></td>
+
+                    <!-- report-error-message-modal -->
+                    <div id="error-message-modal-report-{{report.id}}" class="modal">
+                        <div class="modal-content">
+                            {{ report.error_message | safe }} <!-- 'safe' filter to render HTML content stored in error_message field. Warning, use it only on content that is absolutely trusted and known to be free of malicious code (like Cross-Site Scripting, or XSS, attacks).  -->
+                        </div>
+                    </div>
+
+                {% endif %}
+
+            </tr>
+        {% endfor %}
+    </tbody>
+</tbody>
+
+{% endblock %}
+
+
+{% block page_scripts %}
+    <script src="{% static 'incidence_report_list.js' %}"></script>
+{% endblock %}
